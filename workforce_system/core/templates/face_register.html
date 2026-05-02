@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Face Registration</title>
+    <link rel="stylesheet" href="{% static 'face.css' %}">
+</head>
+<body>
+
+<div class="container">
+    <h2>Face Registration</h2>
+    <p>We'll take a first look at your face, then guide you through a quick liveness check to confirm you're a real person.</p>
+
+    <video id="video" autoplay></video>
+
+    <button onclick="startRegistration()">Start Registration</button>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <p id="status" class="status"></p>
+</div>
+
+<script src="{% static 'face_register.js' %}"></script>
+
+</body>
+</html>

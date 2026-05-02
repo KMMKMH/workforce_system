@@ -1,0 +1,80 @@
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: #1E293B;
+    color: white;
+    text-align: center;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+video {
+    transform: scaleX(-1);
+}
+
+.container {
+    max-width: 500px;
+    width: 90%;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(2px);
+    border-radius: 32px;
+    padding: 32px 24px;
+    box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+video {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 24px;
+    margin: 20px 0;
+    box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+button {
+    padding: 12px 28px;
+    background: #4338CA;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 40px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+    background: #FB7185;
+    transform: scale(1.02);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.status {
+    color: #94A3B8;
+    font-weight: 500;
+    margin-top: 16px;
+    font-size: 14px;
+}
+
+.status.success {
+    color: #34D399;
+}
+
+.status.error {
+    color: #FB7185;
+}
+
+.status.warning {
+    color: #F59E0B;
+}
+
+.status.instruction {
+    color: #94A3B8;
+}

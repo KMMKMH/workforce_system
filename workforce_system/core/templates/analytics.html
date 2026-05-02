@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Analytics | Workforce System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'analytics.css' %}">
+</head>
+<body>
+
+<div class="analytics-page">
+    <div class="back-nav">
+        <a href="{% url 'dashboard' %}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <h1><i class="fas fa-chart-line"></i> Performance Analytics</h1>
+
+    <div class="analytics-toolbar">
+        <div class="month-filter">
+            <label for="monthSelect">
+                <i class="fas fa-calendar-alt"></i>
+                Month
+            </label>
+
+            <select id="monthSelect">
+                {% for month in months %}
+                    <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
+                        {{ month.label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="selected-month-pill">
+            Viewing: <strong id="selectedMonthLabel">{{ selected_month_label }}</strong>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="stat-info">
+                <span class="stat-value" id="totalHours">{{ total_hours }}</span>
+                <span class="stat-label">Total Hours</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-business-time"></i></div>
+            <div class="stat-info">
+                <span class="stat-value" id="avgHours">{{ avg_hours }}</span>
+                <span class="stat-label">Avg Hours / Day</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+            <div class="stat-info">
+                <span class="stat-value" id="totalDays">{{ total_days }}</span>
+                <span class="stat-label">Active Days</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="stat-info">
+                <span class="stat-value" id="anomalies">{{ anomalies }}</span>
+                <span class="stat-label">Anomalies</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="analytics-grid">
+        <div class="card">
+            <h2><i class="fas fa-tasks"></i> Task Progress</h2>
+            <div class="progress-stats">
+                <div class="progress-item">
+                    <span class="progress-label">Completed</span>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar completed" id="completedBar" style="width: {{ completion_rate }}%;"></div>
+                    </div>
+                    <span class="progress-value" id="completedValue">{{ completed }} / {{ total_tasks }}</span>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-label">In Progress</span>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar in-progress" id="inProgressBar" style="width: {{ in_progress_rate }}%;"></div>
+                    </div>
+                    <span class="progress-value" id="inProgressValue">{{ in_progress }} / {{ total_tasks }}</span>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-label">Pending</span>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar pending" id="pendingBar" style="width: {{ pending_rate }}%;"></div>
+                    </div>
+                    <span class="progress-value" id="pendingValue">{{ pending }} / {{ total_tasks }}</span>
+                </div>
+            </div>
+            <div class="completion-rate">
+                <i class="fas fa-flag-checkered"></i> Completion rate: <strong id="completionRate">{{ completion_rate }}%</strong>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-code-branch"></i> Commit Activity</h2>
+            <div class="commit-stats">
+                <div class="commit-stat">
+                    <span class="stat-number" id="totalCommits">{{ total_commits }}</span>
+                    <span class="stat-desc">Total commits</span>
+                </div>
+                <div class="commit-stat">
+                    <span class="stat-number" id="commitsPerDay">{{ commits_per_day }}</span>
+                    <span class="stat-desc">Commits / day</span>
+                </div>
+                <div class="commit-stat">
+                    <span class="stat-number" id="activeDays">{{ active_days }}</span>
+                    <span class="stat-desc">Days with commits</span>
+                </div>
+            </div>
+            <div class="activity-note">
+                <i class="fas fa-chart-line"></i> Consistent activity keeps the team moving.
+            </div>
+        </div>
+    </div>
+
+    <div class="insight-card">
+        <i class="fas fa-lightbulb"></i>
+        <span>Your productivity trend is: <strong id="trendText" class="{{ trend_class }}">{{ trend }}</strong>
+        </span>
+    </div>
+</div>
+
+<script src="{% static 'analytics.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,345 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: #1E293B;
+    color: #F1F5F9;
+    overflow: hidden;
+    height: 100vh;
+}
+
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; 
+    overflow: hidden; 
+}
+
+.top-band {
+    background: rgba(67, 56, 202, 0.15);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    gap: 16px;
+}
+
+.top-band .card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 16px 24px;
+    text-align: center;
+    flex: 1;
+    min-width: 100px;
+    transition: all 0.2s ease;
+}
+
+.top-band .card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.top-band .card p {
+    font-size: 14px;
+    color: #94A3B8;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.top-band .card strong {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.status-active { color: #34D399; }
+.status-short { color: #F59E0B; }
+.status-absent { color: #F43F5E; }
+.status-leave { color: #60A5FA; }
+.status-holiday { color: #818CF8; }
+.status-overtime { color: #F97316; }
+.status-offline { color: #64748B; } 
+
+.main-area {
+    flex: 1;
+    padding: 20px 20px;
+    overflow-y: auto;
+}
+
+.main-area h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #E2E8F0;
+    border-left: 4px solid #FB7185;
+    padding-left: 16px;
+}
+
+.task-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.task-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.task-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateX(4px);
+}
+
+.task-title {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    color: #FEFBF6;
+}
+
+.task-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 13px;
+    color: #94A3B8;
+}
+
+.task-details span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.task-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.task-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateX(4px);
+}
+
+.task-card h3 {
+    font-size: 1rem;
+    margin-bottom: 4px;
+    color: #FEFBF6;
+}
+
+.task-card p {
+    color: #CBD5E1;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.task-card p strong {
+    color: #E2E8F0;
+}
+
+.task-actions {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.task-actions span {
+    font-size: 12px;
+    color: #94A3B8;
+    background: rgba(255,255,255,0.03);
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.task-btn {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 40px;
+    font-weight: 500;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.task-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+.task-btn:active {
+    transform: translateY(1px);
+}
+
+.task-start {
+    background: #4338CA;
+    color: white;
+}
+
+.task-ready {
+    background: #34D399;
+    color: #0F172A;
+}
+
+.task-cancel {
+    background: #FB7185;
+    color: white;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 32px 20px; 
+    color: #94A3B8;
+    background: rgba(255,255,255,0.02);
+    border-radius: 28px;
+    font-size: 0.9rem;
+}
+
+.portal-bar {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.portal-btn {
+    background: transparent;
+    color: #CBD5E1;
+    text-decoration: none;
+    padding: 8px 20px;
+    border-radius: 40px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.portal-btn:hover {
+    background: #4338CA;
+    color: white;
+    border-color: transparent;
+    transform: translateY(-2px);
+}
+
+.footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    background: #0F172A;
+    color: #64748B;
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 6px;
+}
+
+.logout-btn {
+    background: #FB7185;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 40px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.logout-btn:hover {
+    background: #F43F5E;
+    transform: translateY(-2px);
+}
+
+.logout-btn:active {
+    transform: scale(0.98);
+}
+
+.live-clock {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Courier New', monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #FEFBF6;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 12px;
+    border-radius: 40px;
+    letter-spacing: 1px;
+    backdrop-filter: blur(4px);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.live-clock i {
+    font-size: 0.8rem;
+    color: #94A3B8;
+}
+
+.live-clock .seconds-sep {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+@media (max-width: 700px) {
+    .top-band {
+        flex-direction: column;
+    }
+    .top-band .card {
+        width: 100%;
+    }
+    .portal-bar {
+        gap: 12px;
+    }
+    .portal-btn {
+        padding: 6px 14px;
+        font-size: 12px;
+    }
+}

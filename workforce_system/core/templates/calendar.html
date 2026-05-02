@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Calendar | Workforce System</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <link rel="stylesheet" href="{% static 'calendar.css' %}">
+</head>
+<body>
+
+<div class="calendar-wrapper">
+    <div class="calendar-header">
+        <h2>
+            <i class="fas fa-calendar-alt"></i> 
+            Task Calendar
+        </h2>
+        <a href="/dashboard/" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+    <div id="calendar"></div>
+    <div class="data">{{ events_json|safe }}</div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<script src="{% static 'calendar.js' %}"></script>
+</body>
+</html>

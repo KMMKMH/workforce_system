@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Verification</title>
+    <link rel="stylesheet" href="{% static 'face.css' %}">
+</head>
+<body>
+
+<div class="container">
+    <h2>Face Verification</h2>
+    <p>We'll first check if you're in our system, then guide you through a quick liveness check to confirm you're a real person.</p>
+
+    <video id="video" autoplay></video>
+
+    <button onclick="startVerification()">Start Verification</button>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <p id="status" class="status"></p>
+</div>
+
+<script src="{% static 'face_verify.js' %}"></script>
+
+</body>
+</html>

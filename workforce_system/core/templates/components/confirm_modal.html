@@ -1,0 +1,17 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'confirm_modal.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<div id="confirmModal" class="confirmModal hidden">
+    <div class="confirm-modal-overlay"></div>
+
+    <div class="confirm-modal-box" id="confirmModalBox">
+        <h3 id="confirmModalTitle">Confirm</h3>
+        <p id="confirmModalMessage">Are you sure?</p>
+
+        <div class="confirm-modal-actions">
+            <button id="confirmModalCancelBtn" class="confirmBtn cancel">Cancel</button>
+            <button id="confirmModalConfirmBtn" class="confirmBtn confirm">Confirm</button>
+        </div>
+    </div>
+</div>

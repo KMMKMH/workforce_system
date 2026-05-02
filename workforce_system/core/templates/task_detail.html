@@ -1,0 +1,130 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ task.title }} - Task Details</title>
+    <link rel="stylesheet" href="{% static 'task_detail.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+{% include "components/confirm_modal.html" %}
+{% include "components/info_modal.html" %}
+    <div class="task-detail-page">
+        <div class="back-nav">
+            <a href="/dashboard/" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <div class="task-layout">
+
+            <section class="task-panel">
+                <div class="task-header">
+                    <h1>{{ task.title }}</h1>
+                    <span class="task-status status-{{ task.status|lower }}">
+                        {{ task.status }}
+                    </span>
+                </div>
+
+                <div class="task-actions">
+                    {% if task.status == "PENDING" %}
+                        <button class="task-btn task-start" data-id="{{ task.id }}" data-status="IN_PROGRESS">▶ Start Task</button>
+                    {% elif task.status == "IN_PROGRESS" %}
+                        <button class="task-btn task-ready" data-id="{{ task.id }}" data-status="READY">✅ Mark as Ready</button>
+                        <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="PENDING">↩ Cancel Progress</button>
+                    {% elif task.status == "READY" %}
+                        <span>⏳ Waiting for review</span>
+                        <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Cancel Review</button>
+                    {% elif task.status == "REVIEW" %}
+                        <span>📋 Under review by manager</span>
+                    {% elif task.status == "DONE" %}
+                        <span>✅ Completed</span>
+                    {% endif %}
+                </div>
+
+                <div class="task-meta">
+                    <p><strong>Description:</strong> {{ task.description }}</p>
+                    <p><strong>Deadline:</strong> {{ task.deadline|date:"M d, Y - H:i" }}</p>
+                    <p><strong>Assigned By:</strong> {{ task.assigned_by.username }}</p>
+                    <p><strong>Assigned To:</strong> {{ task.assigned_to.username }}</p>
+                    <p><strong>Estimated Hours:</strong> {{ task.estimated_hours }}</p>
+                </div>
+
+                <div class="task-images-section">
+                    <h2><i class="fas fa-image"></i> Screenshots</h2>
+                    {% if images %}
+                        <div class="task-images-grid">
+                            {% for image in images %}
+                                <div class="task-image-card">
+                                    <img src="{{ image.image.url }}" alt="Task Screenshot">
+                                    {% if image.caption %}
+                                        <p class="image-caption">{{ image.caption }}</p>
+                                    {% endif %}
+                                    <span class="image-meta">
+                                        <i class="fas fa-user"></i> {{ image.uploaded_by.username }} • 
+                                        <i class="fas fa-calendar-alt"></i> {{ image.uploaded_at|date:"M d, Y - H:i" }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="empty-text"><i class="fas fa-folder-open"></i> No screenshots uploaded yet.</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="commit-panel">
+                <div class="commit-header">
+                    <h2><i class="fas fa-code-branch"></i> Daily Commits</h2>
+                </div>
+
+                <div id="commitFormContainer">
+                    {% if can_edit %}
+                        <form id="commitForm" class="commit-form" data-task-id="{{ task.id }}">
+                            <textarea
+                                id="commitMessage"
+                                name="message"
+                                placeholder="Write what you worked on..."
+                                required
+                            ></textarea>
+                            <button type="submit"><i class="fas fa-save"></i> Save Commit</button>
+                        </form>
+                    {% else %}
+                        <div class="read-only-box">
+                            <i class="fas fa-lock"></i> You can only add commits when this task is <strong>IN_PROGRESS</strong> and assigned to you.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div id="commitError" class="commit-error"></div>
+
+                <div id="commitList" class="commit-list">
+                    {% for commit in commits %}
+                        <div class="commit-card" data-commit-id="{{ commit.id }}">
+                            <div class="commit-top">
+                                <span class="commit-user"><i class="fas fa-user-circle"></i> {{ commit.user.username }}</span>
+                                <span class="commit-date"><i class="fas fa-clock"></i> {{ commit.created_at|date:"M d, Y - H:i" }}</span>
+                            </div>
+                            <p class="commit-message">{{ commit.message }}</p>
+                            <div class="commit-actions">
+                                <button class="delete-commit-btn" data-commit-id="{{ commit.id }}" title="Delete commit">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="empty-text" id="noCommitsText"><i class="fas fa-comments"></i> No commits yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="{% static 'confirm_modal.js' %}"></script>
+    <script src="{% static 'info_modal.js' %}"></script>
+    <script src="{% static 'task_detail.js' %}"></script>
+</body>
+</html>

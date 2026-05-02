@@ -1,0 +1,290 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: #1E293B;
+    color: #F1F5F9;
+    min-height: 100vh;
+    padding: 32px 24px;
+}
+
+.profile-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.back-nav {
+    margin-bottom: 24px;
+}
+.back-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 40px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #CBD5E1;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+.back-btn:hover {
+    background: #4338CA;
+    color: white;
+    border-color: transparent;
+    transform: translateX(-3px);
+}
+
+h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #FEFBF6;
+    border-left: 4px solid #FB7185;
+    padding-left: 18px;
+}
+h1 i {
+    color: #FB7185;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    padding: 24px;
+    margin-bottom: 24px;
+    transition: all 0.2s ease;
+}
+.card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.card h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #E2E8F0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid #4338CA;
+    padding-left: 12px;
+}
+.card h2 i {
+    color: #4338CA;
+}
+
+.info {
+    margin-bottom: 16px;
+}
+.info label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 6px;
+    color: #94A3B8;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+}
+.info p {
+    color: #F1F5F9;
+    font-size: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+form label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 6px;
+    color: #94A3B8;
+    font-size: 13px;
+}
+input, textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.3);
+    color: #F1F5F9;
+    font-size: 14px;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+    font-family: inherit;
+}
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #4338CA;
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.2);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 40px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+.btn i {
+    font-size: 14px;
+}
+.btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+.btn:active {
+    transform: translateY(1px);
+}
+
+.primary {
+    background: #4338CA;
+    color: white;
+}
+.primary:hover {
+    background: #FB7185;
+}
+
+.secondary {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #CBD5E1;
+}
+.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.warning {
+    background: #F59E0B;
+    color: #0F172A;
+}
+.warning:hover {
+    background: #FB7185;
+    color: white;
+}
+
+.locked {
+    position: relative;
+    overflow: hidden;
+}
+.locked::after {
+    content: "🔒 Managed by HR";
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    padding: 4px 12px;
+    border-radius: 40px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94A3B8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+}
+.locked .info p {
+    opacity: 0.8;
+}
+
+.card a.btn {
+    margin-top: 8px;
+}
+
+.security-actions {
+    margin-bottom: 24px;
+}
+
+.biometric-info {
+    margin: 16px 0 0 0;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.biometric-status-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 600;
+    width: fit-content;
+    margin: 0;
+}
+
+.status.enabled {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34D399;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.status.disabled {
+    background: rgba(251, 113, 133, 0.15);
+    color: #FB7185;
+    border: 1px solid rgba(251, 113, 133, 0.3);
+}
+
+.hr-badge {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    padding: 4px 12px;
+    border-radius: 40px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94A3B8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.locked-note {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    body {
+        padding: 20px 16px;
+    }
+    .card {
+        padding: 20px;
+    }
+    h1 {
+        font-size: 1.5rem;
+    }
+    .locked::after {
+        position: relative;
+        top: auto;
+        right: auto;
+        display: inline-block;
+        margin-bottom: 12px;
+        width: fit-content;
+    }
+}

@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'dashboard.css' %}">
+</head>
+<body>
+{% include "components/info_modal.html" %}
+{% include "components/confirm_modal.html" %}
+
+<div class="dashboard-container">
+    <div class="top-band">
+        <div class="card">
+            <p><i class="fas fa-circle-user"></i> Status</p>
+            <strong class="status-{{ status|lower }}">{{ status|default:"-" }}</strong>
+        </div>
+
+        <div class="card">
+            <p><i class="fas fa-tasks"></i> Tasks</p>
+            <strong>{{ tasks_count }}</strong>
+        </div>
+
+        <div class="card">
+            <p><i class="fas fa-bell"></i> Alerts</p>
+            <strong>
+                {% if alert %}<i class="fas fa-exclamation-triangle" style="color: #FB7185;"></i>{% else %}<i class="fas fa-check-circle" style="color: #34D399;"></i>{% endif %}
+            </strong>
+        </div>
+
+        <div class="live-clock">
+            <i class="fas fa-clock"></i>
+            <span id="clock">--:--:--</span>
+        </div>
+    </div>
+
+    <div class="main-area">
+
+        <h2><i class="fas fa-list-check"></i> My Tasks</h2>
+
+        {% for task in tasks %}
+            <a href="{% url 'task_detail' task.id %}" class="task-card-link">
+                <div class="task-card" data-id="{{ task.id }}">
+                    <h3>{{ task.title }}</h3>
+                    <p>{{ task.description }}</p>
+
+                    <p>Status: <strong>{{ task.status }}</strong></p>
+                    <p>Deadline: {{ task.deadline|date:"M d, H:i" }}</p>
+
+                    <div class="task-actions">
+                        {% if task.status == "PENDING" %}
+                            <button class="task-btn task-start" data-id="{{ task.id }}" data-status="IN_PROGRESS">▶ Start Task</button>
+                        {% elif task.status == "IN_PROGRESS" %}
+                            <button class="task-btn task-ready" data-id="{{ task.id }}" data-status="READY">✅ Mark as Ready</button>
+                            <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="PENDING">↩ Cancel Progress</button>
+                        {% elif task.status == "READY" %}
+                            <span>⏳ Waiting for review</span>
+                            <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Cancel Review</button>
+                        {% elif task.status == "REVIEW" %}
+                            <span>📋 Under review by manager</span>
+                        {% elif task.status == "DONE" %}
+                            <span>✅ Completed</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+        {% empty %}
+            <p class="empty-message"><i class="fas fa-inbox"></i> No tasks assigned</p>
+        {% endfor %}
+
+    </div>
+
+    <div class="portal-bar">
+        <a href="#" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
+        <a href="{% url 'profile' %}" class="portal-btn"><i class="fas fa-user"></i> Profile</a>
+        <a href="{% url 'employee_analytics' %}" class="portal-btn"><i class="fas fa-chart-line"></i> Analytics</a>
+        <a href="{% url 'calendar' %}" class="portal-btn"><i class="fas fa-calendar"></i> Calendar</a>
+        <button class="logout-btn" onclick="clockOut()"><i class="fas fa-sign-out-alt"></i> Clock out</button>
+    </div>
+
+    <div class="footer">
+        <i class="fas fa-building"></i> Coftech © Workforce System 2026
+    </div>
+
+</div>
+
+<script src="{% static 'info_modal.js' %}"></script>
+<script src="{% static 'confirm_modal.js' %}"></script>
+<script src="{% static 'dashboard.js' %}"></script>
+
+</body>
+</html>
