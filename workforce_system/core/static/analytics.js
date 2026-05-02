@@ -64,6 +64,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             window.history.replaceState({}, "", url);
 
+            const anomaliesLink = document.getElementById("anomaliesLink");
+            if (anomaliesLink) {
+                anomaliesLink.href = `/analytics/anomalies/?month=${data.selected_month}`;
+            }
+
         } catch (error) {
             console.error(error);
             alert("Could not load analytics for this month.");

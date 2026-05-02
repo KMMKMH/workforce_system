@@ -175,6 +175,58 @@ select#monthSelect option {
     background: rgba(255, 255, 255, 0.06);
 }
 
+.stat-card-link {
+    text-decoration: none;
+    display: block;
+}
+
+.anomaly-card.has-anomalies {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.anomaly-card.has-anomalies:hover {
+    background: rgba(251, 113, 133, 0.12);
+    border-color: #FB7185;
+    transform: translateY(-4px);
+}
+.anomaly-card.has-anomalies .click-hint {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    color: #FB7185;
+    font-size: 1.1rem;
+}
+.anomaly-card.has-anomalies:hover .click-hint {
+    opacity: 1;
+    transform: translateY(-50%) translateX(4px);
+}
+.anomaly-card.has-anomalies {
+    justify-content: space-between;
+}
+.anomaly-card.has-anomalies .stat-info {
+    flex: 1;
+}
+.anomaly-card.has-anomalies .stat-icon i {
+    color: #FB7185;
+}
+
+.anomaly-card.no-anomalies {
+    cursor: default;
+    transition: all 0.2s ease;
+}
+.anomaly-card.no-anomalies:hover {
+    background: rgba(52, 211, 153, 0.12);
+    border-color: #34D399;
+    transform: translateY(-2px);
+}
+.anomaly-card.no-anomalies .stat-icon i {
+    color: #34D399;
+}
+
 .stat-icon {
     font-size: 2.2rem;
     color: #818CF8;

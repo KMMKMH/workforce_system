@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.contrib.auth.views import PasswordChangeView, PasswordChangeDoneView
 from django.urls import path
-from core.views import add_task_commit, calendar_view, dashboard, delete_commit, employee_analytics, login_view, face_verify, face_register, task_detail, update_task_status, profile_view
+from core.views import add_task_commit, calendar_view, dashboard, edit_commit, delete_commit, employee_analytics, employee_anomalies, login_view, face_verify, face_register, task_detail, update_task_status, profile_view
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -32,8 +32,10 @@ urlpatterns = [
     path("tasks/<int:task_id>/", task_detail, name="task_detail"),
     path("tasks/<int:task_id>/commit/", add_task_commit, name="add_task_commit"),
     path("commits/<int:commit_id>/delete/", delete_commit, name="delete_commit"),
+    path("commits/<int:commit_id>/edit/", edit_commit, name="edit_commit"),
     path("profile/", profile_view, name="profile"),
     path("analytics/", employee_analytics, name="employee_analytics"),
+    path("analytics/anomalies/", employee_anomalies, name="employee_anomalies"),
     path('password/change/', PasswordChangeView.as_view(
         template_name='registration/password_change_form.html'
     ), name='password_change'),

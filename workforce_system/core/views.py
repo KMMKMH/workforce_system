@@ -365,7 +365,8 @@ def add_task_commit(request, task_id):
             "id": commit.id,
             "user": commit.user.username,
             "message": commit.message,
-            "created_at": localtime(commit.created_at).strftime("%b %d, %Y - %H:%M"),
+            "updated_at": localtime(commit.updated_at).strftime("%b %d, %Y - %H:%M"),
+            "edited": commit.is_edited,
         }
     })
 
@@ -379,10 +380,61 @@ def delete_commit(request, commit_id):
                 "success": False,
                 "error": "You cannot delete this commit."
             }, status=403)
+        
+        if commit.task.status != "IN_PROGRESS":
+            return JsonResponse({
+                "success": False,
+                "error": "You can only delete commits while the task is in progress."
+            }, status=403)
 
         commit.delete()
 
         return JsonResponse({"success": True})
+
+    except TaskCommit.DoesNotExist:
+        return JsonResponse({
+            "success": False,
+            "error": "Commit not found."
+        }, status=404)
+    
+@require_POST
+@login_required
+def edit_commit(request, commit_id):
+    try:
+        commit = TaskCommit.objects.get(id=commit_id)
+
+        if commit.user != request.user:
+            return JsonResponse({
+                "success": False,
+                "error": "You cannot edit this commit."
+            }, status=403)
+
+        if commit.task.status != "IN_PROGRESS":
+            return JsonResponse({
+                "success": False,
+                "error": "You can only edit commits while the task is in progress."
+            }, status=403)
+
+        message = request.POST.get("message", "").strip()
+
+        if not message:
+            return JsonResponse({
+                "success": False,
+                "error": "Commit message cannot be empty."
+            }, status=400)
+
+        commit.message = message
+        commit.save()
+
+        return JsonResponse({
+            "success": True,
+            "commit": {
+                "id": commit.id,
+                "message": commit.message,
+                "updated_at": localtime(commit.updated_at).strftime("%b %d, %Y - %H:%M"),
+                "edited": commit.is_edited,
+            }
+        })
 
     except TaskCommit.DoesNotExist:
         return JsonResponse({
@@ -502,8 +554,6 @@ def employee_analytics(request):
     avg_hours = total_hours / total_working_days if total_working_days else 0
     anomalies = attendance.filter(is_anomaly=True).count()
 
-    # Tasks filtered by creation/update month.
-    # If your Task model does not have created_at, use updated_at only or remove the date filter.
     tasks = user.tasks.filter(
         updated_at__gte=month_start_datetime,
         updated_at__lte=month_end_datetime
@@ -572,6 +622,88 @@ def employee_analytics(request):
         return JsonResponse(data)
 
     return render(request, "analytics.html", {
+        **data,
+        "months": months,
+    })
+
+@login_required
+def employee_anomalies(request):
+    user = request.user
+    today = timezone.now().date()
+
+    join_date = user.date_joined.date()
+    month_cursor = date(today.year, today.month, 1)
+    join_month = date(join_date.year, join_date.month, 1)
+
+    months = []
+
+    while month_cursor >= join_month:
+        months.append({
+            "value": month_cursor.strftime("%Y-%m"),
+            "label": month_cursor.strftime("%B %Y"),
+        })
+
+        if month_cursor.month == 1:
+            month_cursor = date(month_cursor.year - 1, 12, 1)
+        else:
+            month_cursor = date(month_cursor.year, month_cursor.month - 1, 1)
+
+    selected_month = request.GET.get("month", today.strftime("%Y-%m"))
+
+    try:
+        selected_year, selected_month_number = map(int, selected_month.split("-"))
+    except ValueError:
+        selected_year = today.year
+        selected_month_number = today.month
+        selected_month = today.strftime("%Y-%m")
+
+    selected_month_date = date(selected_year, selected_month_number, 1)
+
+    if selected_month_date < join_month or selected_month_date > date(today.year, today.month, 1):
+        selected_year = today.year
+        selected_month_number = today.month
+        selected_month = today.strftime("%Y-%m")
+        selected_month_date = date(selected_year, selected_month_number, 1)
+
+    month_start = date(selected_year, selected_month_number, 1)
+    last_day = calendar.monthrange(selected_year, selected_month_number)[1]
+    month_end = date(selected_year, selected_month_number, last_day)
+
+    if selected_year == today.year and selected_month_number == today.month:
+        month_end = today
+
+    anomalies = user.attendance_set.filter(
+        date__gte=month_start,
+        date__lte=month_end,
+        is_anomaly=True
+    ).order_by("-date")
+
+    data = {
+        "selected_month": selected_month,
+        "selected_month_label": month_start.strftime("%B %Y"),
+        "anomalies_count": anomalies.count(),
+        "anomalies": anomalies,
+    }
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        anomalies_data = []
+
+        for anomaly in anomalies:
+            anomalies_data.append({
+                "date": anomaly.date.strftime("%b %d, %Y"),
+                "status": anomaly.status,
+                "check_in": localtime(anomaly.check_in).strftime("%H:%M") if anomaly.check_in else "—",
+                "check_out": localtime(anomaly.check_out).strftime("%H:%M") if anomaly.check_out else "—",
+                "worked_hours": round(anomaly.worked_hours or 0, 2),
+                "reason": anomaly.anomaly_reason or "No reason provided.",
+            })
+
+        return JsonResponse({
+            **data,
+            "anomalies": anomalies_data,
+        })
+
+    return render(request, "anomalies.html", {
         **data,
         "months": months,
     })

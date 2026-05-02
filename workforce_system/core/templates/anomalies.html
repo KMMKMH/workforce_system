@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Anomalies | Workforce System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <link rel="stylesheet" href="{% static 'analytics.css' %}">
+    <link rel="stylesheet" href="{% static 'anomalies.css' %}">
+</head>
+<body>
+
+<div class="analytics-page">
+    <div class="back-nav">
+        <a href="{% url 'employee_analytics' %}?month={{ selected_month }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Analytics
+        </a>
+    </div>
+
+    <h1><i class="fas fa-exclamation-triangle"></i> Attendance Anomalies</h1>
+
+    <div class="analytics-toolbar">
+        <div class="month-filter">
+            <label for="monthSelect">
+                <i class="fas fa-calendar-alt"></i>
+                Month
+            </label>
+
+            <select id="monthSelect">
+                {% for month in months %}
+                    <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
+                        {{ month.label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="selected-month-pill">
+            Viewing: <strong id="selectedMonthLabel">{{ selected_month_label }}</strong>
+        </div>
+    </div>
+
+    <div class="anomalies-summary">
+        <div class="summary-icon">
+            <i class="fas fa-bug"></i>
+        </div>
+
+        <div>
+            <span id="anomaliesCount">{{ anomalies_count }}</span>
+            <p>anomalies found this month</p>
+        </div>
+    </div>
+
+    <div id="anomaliesList" class="anomalies-list">
+        {% for anomaly in anomalies %}
+            <div class="anomaly-detail-card">
+                <div class="anomaly-detail-header">
+                    <div>
+                        <h2>
+                            <i class="fas fa-calendar-day"></i>
+                            {{ anomaly.date|date:"M d, Y" }}
+                        </h2>
+                        <span class="anomaly-status status-{{ anomaly.status|lower }}">
+                            {{ anomaly.status }}
+                        </span>
+                    </div>
+
+                    <div class="anomaly-hours">
+                        <strong>{{ anomaly.worked_hours|floatformat:2 }}</strong>
+                        <span>hours</span>
+                    </div>
+                </div>
+
+                <div class="anomaly-times">
+                    <div>
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Check In</span>
+                        <strong>
+                            {% if anomaly.check_in %}
+                                {{ anomaly.check_in|date:"H:i" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Check Out</span>
+                        <strong>
+                            {% if anomaly.check_out %}
+                                {{ anomaly.check_out|date:"H:i" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="anomaly-reason">
+                    <i class="fas fa-info-circle"></i>
+                    <p>
+                        {% if anomaly.anomaly_reason %}
+                            {{ anomaly.anomaly_reason }}
+                        {% else %}
+                            No reason provided.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        {% empty %}
+            <div class="empty-anomalies">
+                <i class="fas fa-check-circle"></i>
+                <h2>No anomalies found</h2>
+                <p>This month looks clean. No attendance issues were detected.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="{% static 'anomalies.js' %}"></script>
+</body>
+</html>

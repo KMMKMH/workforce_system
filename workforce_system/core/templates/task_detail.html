@@ -105,13 +105,23 @@
                         <div class="commit-card" data-commit-id="{{ commit.id }}">
                             <div class="commit-top">
                                 <span class="commit-user"><i class="fas fa-user-circle"></i> {{ commit.user.username }}</span>
-                                <span class="commit-date"><i class="fas fa-clock"></i> {{ commit.created_at|date:"M d, Y - H:i" }}</span>
+                                <span class="commit-date"><i class="fas fa-clock"></i> 
+                                    {{ commit.updated_at|date:"M d, Y - H:i" }} 
+                                    {% if commit.is_edited %}
+                                        <span class="edited-label">(edited)</span>
+                                    {% endif %}
+                                </span>
                             </div>
                             <p class="commit-message">{{ commit.message }}</p>
                             <div class="commit-actions">
-                                <button class="delete-commit-btn" data-commit-id="{{ commit.id }}" title="Delete commit">
-                                    <i class="fas fa-trash-alt"></i> Delete
-                                </button>
+                                {% if can_edit %}
+                                    <button class="edit-commit-btn" data-commit-id="{{ commit.id }}" title="Edit commit">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="delete-commit-btn" data-commit-id="{{ commit.id }}" title="Delete commit">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                {% endif %}
                             </div>
                         </div>
                     {% empty %}

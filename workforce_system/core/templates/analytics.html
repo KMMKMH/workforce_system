@@ -62,13 +62,26 @@
                 <span class="stat-label">Active Days</span>
             </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <div class="stat-info">
-                <span class="stat-value" id="anomalies">{{ anomalies }}</span>
-                <span class="stat-label">Anomalies</span>
+        {% if anomalies > 0 %}
+            <a href="{% url 'employee_anomalies' %}?month={{ selected_month }}" class="stat-card-link" id="anomaliesLink">
+                <div class="stat-card anomaly-card has-anomalies">
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="anomalies">{{ anomalies }}</span>
+                        <span class="stat-label">Anomalies</span>
+                    </div>
+                    <div class="click-hint"><i class="fas fa-chevron-right"></i></div>
+                </div>
+            </a>
+        {% else %}
+            <div class="stat-card anomaly-card no-anomalies">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">Anomalies</span>
+                </div>
             </div>
-        </div>
+        {% endif %}
     </div>
 
     <div class="analytics-grid">

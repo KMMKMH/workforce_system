@@ -169,6 +169,10 @@ class TaskCommit(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def is_edited(self):
+        return abs((self.updated_at - self.created_at).total_seconds()) > 2
+
     def __str__(self):
         return f"{self.user} - {self.task} ({self.created_at.date()})"    
 

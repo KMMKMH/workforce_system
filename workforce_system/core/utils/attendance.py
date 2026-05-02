@@ -1,6 +1,5 @@
-from datetime import timedelta
+from datetime import timedelta, datetime, time
 from django.utils import timezone
-from django.shortcuts import redirect
 from core.models import Attendance, Holiday, TaskCommit
 
 THRESHOLD_HOURS = 7
@@ -53,26 +52,37 @@ def auto_fix_attendance(user):
         current_date += timedelta(days=1)
 
 def handle_no_checkout(user, last_record):
-    print(last_record)
     if user.role in ['CEO', 'HR', 'ACCOUNTANT']: return
-    if last_record.check_out:
+    today = timezone.now().date()
+    
+    if last_record.date == today or last_record.check_out or not last_record.check_in:
         return
+
+    local_tz = timezone.get_current_timezone()
+
+    day_end = timezone.make_aware(
+        datetime.combine(last_record.date, time.max),
+        local_tz
+    )
 
     last_commit = TaskCommit.objects.filter(
         user=last_record.user,
-        created_at__date=(last_record.date)
-    ).order_by('-created_at').first()
+        created_at__gte=last_record.check_in,
+        created_at__lte=day_end
+    ).order_by("-created_at").first()
 
-    session_hours = None
     if last_commit:
         last_record.check_out = last_commit.created_at
-        delta = last_commit.created_at - last_record.check_in
+        delta = last_record.check_out - last_record.check_in
         session_hours = delta.total_seconds() / 3600
+
+        if last_record.worked_hours:
+            last_record.worked_hours += session_hours
+        else:
+            last_record.worked_hours = session_hours
     else:
-        midnight = last_record.check_in.replace(hour=23, minute=59, second=59)
-        last_record.check_out = midnight
-    
-    last_record.worked_hours = session_hours
+        last_record.check_out = day_end
+
     last_record.is_anomaly = True
     last_record.anomaly_reason = "Missing check-out record (auto-closed by system)"
 
