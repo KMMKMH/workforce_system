@@ -56,7 +56,7 @@ function initLiveHours() {
 document.addEventListener("DOMContentLoaded", initLiveHours);
 
 
-function updateTask(taskId, newStatus) {
+function updateTask(taskId, newStatus, isManager) {
     fetch("/tasks/update/", {
         method: "POST",
         headers: {
@@ -71,7 +71,7 @@ function updateTask(taskId, newStatus) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            updateTaskUI(taskId, newStatus);
+            updateTaskUI(taskId, newStatus, isManager);
         } else {
             showInfo(
                 data.error,
@@ -84,7 +84,7 @@ function updateTask(taskId, newStatus) {
     });
 }
 
-function updateTaskUI(taskId, status) {
+function updateTaskUI(taskId, status, isManager) {
     const card = document.querySelector(`.task-card[data-id="${taskId}"]`);
     const actionsDiv = card.querySelector('.task-actions');
 
@@ -118,6 +118,10 @@ function updateTaskUI(taskId, status) {
         `;
     }
 
+    else if (status === "REVIEW" && isManager) {
+        html = `<span>📋 Under review by CEO</span>`;
+    }
+
     else if (status === "REVIEW") {
         html = `<span>📋 Under review by manager</span>`;
     }
@@ -148,7 +152,8 @@ function attachTaskEvents() {
             e.stopPropagation();
             const taskId = this.dataset.id;
             const status = this.dataset.status;
-            updateTask(taskId, status);
+            const isManager= Boolean(this.dataset.manager)
+            updateTask(taskId, status, isManager);
         };
     });
 }

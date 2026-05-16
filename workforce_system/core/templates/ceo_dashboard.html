@@ -1,0 +1,258 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CEO Dashboard | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'ceo_dashboard.css' %}">
+</head>
+<body>
+{% include "components/info_modal.html" %}
+{% include "components/confirm_modal.html" %}
+
+<div class="ceo-dashboard">
+    <div class="top-band">
+        <div class="card">
+            <p><i class="fas fa-users"></i> Managers</p>
+            <strong>{{ manager_count }}</strong>
+        </div>
+        <div class="card">
+            <p><i class="fas fa-circle-check"></i> Online</p>
+            <strong class="status-active">{{ online_count }}</strong>
+        </div>
+        <div class="card">
+            <p><i class="fas fa-clipboard-check"></i> Tasks Ready For Review</p>
+            <strong class="status-ready" id="readyTasksCount">{{ ready_tasks }}</strong>
+        </div>
+        <div class="card">
+            <p><i class="fas fa-list-check"></i> Open Tasks</p>
+            <strong id="openTasksCount">{{ open_tasks }}</strong>
+        </div>
+        <div class="card">
+            <p><i class="fas fa-triangle-exclamation"></i> Alerts</p>
+            <strong class="{% if anomaly_count %}status-alert{% else %}status-active{% endif %}">{{ anomaly_count }}</strong>
+        </div>
+        <div class="live-clock">
+            <i class="fas fa-clock"></i>
+            <span id="clock">--:--:--</span>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <section class="panel create-panel">
+            <div class="section-header">
+                <h2><i class="fas fa-plus"></i> Assign Task</h2>
+            </div>
+
+            <form method="POST" class="task-form">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div>
+                        <label for="{{ task_form.title.id_for_label }}">Title</label>
+                        {{ task_form.title }}
+                    </div>
+                    <div>
+                        <label for="{{ task_form.assigned_to.id_for_label }}">Manager</label>
+                        {{ task_form.assigned_to }}
+                    </div>
+                    <div>
+                        <label for="{{ task_form.status.id_for_label }}">Status</label>
+                        {{ task_form.status }}
+                    </div>
+                    <div>
+                        <label for="{{ task_form.deadline.id_for_label }}">Deadline</label>
+                        {{ task_form.deadline }}
+                    </div>
+                    <div>
+                        <label for="{{ task_form.estimated_hours.id_for_label }}">Estimated Hours</label>
+                        {{ task_form.estimated_hours }}
+                    </div>
+                </div>
+
+                <label for="{{ task_form.description.id_for_label }}">Description</label>
+                {{ task_form.description }}
+
+                {% if task_form.errors %}
+                    <div class="form-errors">{{ task_form.errors }}</div>
+                {% endif %}
+
+                <button type="submit" class="primary-btn">
+                    <i class="fas fa-save"></i> Create Task
+                </button>
+            </form>
+        </section>
+
+        <div class="dashboard-grid">
+            <section class="panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-user-clock"></i> Managers' Attendance</h2>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="t-employee">Manager</th>
+                                <th>Status</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Hours</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in attendance_rows %}
+                                <tr>
+                                    <td class="t-employee">
+                                        <strong>{{ row.manager.username }}</strong>
+                                        <span>{{ row.position|default:"Manager" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-pill status-{{ row.status|lower }}">{{ row.status }}</span>
+                                        {% if row.alert %}
+                                            <small class="alert-text">{{ row.alert }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ row.check_in|date:"H:i"|default:"-" }}</td>
+                                    <td>{{ row.check_out|date:"H:i"|default:"-" }}</td>
+                                    <td>{{ row.worked_hours|floatformat:2|default:"-" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5" class="empty-cell">No managers yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-users-gear"></i> Managers</h2>
+                </div>
+
+                <div class="member-list">
+                    {% for row in member_rows %}
+                        <div class="member-card">
+                            <div>
+                                <strong>{{ row.profile.user.username }}</strong>
+                                <span>{{ row.profile.position|default:"Employee" }}, {{ row.profile.department|default:"-" }}</span>
+                            </div>
+                            <div class="member-status">
+                                {% if row.is_online %}
+                                    <span class="online-badge"><i class="fas fa-circle"></i> Online</span>
+                                {% else %}
+                                    <span class="offline-badge">{{ row.status }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="empty-message">No managers yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <section class="panel task-panel">
+            <div class="section-header">
+                <h2><i class="fas fa-list-check"></i> Managers Tasks</h2>
+                <button type="button" class="toggle-completed-btn" id="toggleCompletedBtn">
+                    <i class="fas fa-eye"></i> Show Completed (<span id="completedTasksCount">{{ completed_tasks }}</span>)
+                </button>
+            </div>
+
+            {% for task in manager_tasks %}
+                <div class="ceo-task-card" data-id="{{ task.id }}" data-status="{{ task.status }}">
+                    <div class="task-main">
+                        <a href="{% url 'task_detail' task.id %}">
+                            <h3>{{ task.title }}</h3>
+                        </a>
+                        <p>{{ task.description }}</p>
+                        <div class="task-meta">
+                            <span><i class="fas fa-user"></i> {{ task.assigned_to.username }}</span>
+                            <span><i class="fas fa-clock"></i> {{ task.deadline|date:"M d, H:i"|default:"No deadline" }}</span>
+                            <span>Status: <strong class="task-status-text">{{ task.status }}</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="task-actions">
+                        {% if task.status == "READY" %}
+                            <button type="button" class="task-btn task-review" data-id="{{ task.id }}" data-status="REVIEW">📋 Review</button>
+                            <button type="button" class="task-btn task-ready" data-id="{{ task.id }}" data-status="DONE">✅ Done</button>
+                            <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Send Back</button>
+                        {% elif task.status == "REVIEW" %}
+                            <button type="button" class="task-btn task-ready" data-id="{{ task.id }}" data-status="DONE">✅ Done</button>
+                            <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Send Back</button>
+                        {% elif task.status == "DONE" %}
+                            <span>Completed</span>
+                        {% else %}
+                            <span>Waiting on employee</span>
+                        {% endif %}
+
+                        <a href="{% url 'ceo_edit_task' task.id %}" class="icon-link" title="Edit task">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" class="icon-link delete-task-btn" data-id="{{ task.id }}" title="Delete task">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="empty-message">No tasks assigned to the managers yet.</p>
+            {% endfor %}
+
+            <div id="completedTasksBlock" class="completed-tasks hidden-completed">
+                <div class="completed-title">
+                    <i class="fas fa-check-circle"></i> Completed Tasks
+                </div>
+
+                {% for task in completed_manager_tasks %}
+                    <div class="ceo-task-card completed-task-card" data-id="{{ task.id }}" data-status="{{ task.status }}">
+                        <div class="task-main">
+                            <a href="{% url 'task_detail' task.id %}">
+                                <h3>{{ task.title }}</h3>
+                            </a>
+                            <p>{{ task.description }}</p>
+                            <div class="task-meta">
+                                <span><i class="fas fa-user"></i> {{ task.assigned_to.username }}</span>
+                                <span><i class="fas fa-clock"></i> {{ task.completed_at|date:"M d, H:i"|default:"Completed" }}</span>
+                                <span>Status: <strong class="task-status-text">{{ task.status }}</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="task-actions">
+                            <span>✅ Completed</span>
+                            <a href="{% url 'ceo_edit_task' task.id %}" class="icon-link" title="Edit task">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="icon-link delete-task-btn" data-id="{{ task.id }}" title="Delete task">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="empty-message">No completed tasks yet.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <div class="portal-bar">
+        <a href="#" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
+        <a href="{% url 'profile' %}" class="portal-btn"><i class="fas fa-user"></i> Profile</a>
+        <a href="{% url 'ceo_analytics' %}" class="portal-btn"><i class="fas fa-chart-line"></i> Managers Analytics</a>
+        <a href="{% url 'ceo_calendar' %}" class="portal-btn"><i class="fas fa-calendar"></i> Managers Calendar</a>
+        <button class="logout-btn" onclick="clockOut()"><i class="fas fa-sign-out-alt"></i> Log out</button>
+    </div>
+
+    <div class="footer">
+        <i class="fas fa-building"></i> Coftech Workforce System 2026
+    </div>
+</div>
+
+<script src="{% static 'info_modal.js' %}"></script>
+<script src="{% static 'confirm_modal.js' %}"></script>
+<script src="{% static 'ceo_dashboard.js' %}"></script>
+</body>
+</html>

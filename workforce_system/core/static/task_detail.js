@@ -8,10 +8,35 @@ function getCSRFToken() {
 }
 
 function attachTaskEvents() {
-    document.querySelectorAll('.task-btn').forEach(btn => {
+    document.querySelectorAll('.task-btn[data-id][data-status]').forEach(btn => {
         btn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
             const taskId = this.dataset.id;
             const status = this.dataset.status;
+
+            if (
+                document.body.dataset.canManage === "true" &&
+                (status === "DONE" || status === "IN_PROGRESS")
+            ) {
+                const isDone = status === "DONE";
+
+                showConfirm(
+                    isDone
+                        ? "Are you sure you want to mark this task as done?"
+                        : `Are you sure you want to send this task back to the ${document.body.dataset.reviewSubject || "employee"}?`,
+                    () => updateTask(taskId, status),
+                    {
+                        title: isDone ? "Complete Task" : "Send Back Task",
+                        status: isDone ? "success" : "warning",
+                        confirmText: isDone ? "Mark Done" : "Send Back"
+                    }
+                );
+
+                return;
+            }
+
             updateTask(taskId, status);
         };
     });
@@ -297,6 +322,10 @@ function updateTask(taskId, newStatus) {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (document.body.dataset.canManage === "true") {
+                    updateManagerTaskUI(taskId, newStatus);
+                    return;
+                }
                 updateTaskUI(taskId, newStatus);
             } else {
                 showInfo(
@@ -308,6 +337,47 @@ function updateTask(taskId, newStatus) {
                 );
             }
         });
+}
+
+function buildManagerTaskActions(taskId, status) {
+    if (status === "READY") {
+        return `
+            <button type="button" class="task-btn task-review" data-id="${taskId}" data-status="REVIEW">Review</button>
+            <button type="button" class="task-btn task-ready" data-id="${taskId}" data-status="DONE">Done</button>
+            <button type="button" class="task-btn task-cancel" data-id="${taskId}" data-status="IN_PROGRESS">Send Back</button>
+        `;
+    }
+
+    if (status === "REVIEW") {
+        return `
+            <button type="button" class="task-btn task-ready" data-id="${taskId}" data-status="DONE">Done</button>
+            <button type="button" class="task-btn task-cancel" data-id="${taskId}" data-status="IN_PROGRESS">Send Back</button>
+        `;
+    }
+
+    if (status === "DONE") {
+        return `<span>Completed</span>`;
+    }
+
+    return `<span>Waiting on ${document.body.dataset.reviewSubject || "employee"}</span>`;
+}
+
+function updateManagerTaskUI(taskId, status) {
+    const statusText = document.querySelector(".task-status");
+    const actionsDiv = document.querySelector(".task-actions");
+    const editLink = actionsDiv?.querySelector('a[href*="/manager/tasks/"], a[href*="/ceo/tasks/"]');
+
+    if (statusText) {
+        statusText.className = `task-status status-${status.toLowerCase()}`;
+        statusText.textContent = status;
+    }
+
+    if (actionsDiv) {
+        actionsDiv.innerHTML = buildManagerTaskActions(taskId, status);
+        if (editLink) actionsDiv.appendChild(editLink);
+    }
+
+    attachTaskEvents();
 }
 
 function updateTaskUI(taskId, status) {
@@ -326,7 +396,7 @@ function updateTaskUI(taskId, status) {
 
     if (status === "PENDING") {
         html = `
-            <button class="task-btn task-start" data-id="${taskId}" data-status="IN_PROGRESS">
+            <button type="button" class="task-btn task-start" data-id="${taskId}" data-status="IN_PROGRESS">
                 ▶ Start Task
             </button>
         `;
@@ -334,10 +404,10 @@ function updateTaskUI(taskId, status) {
 
     else if (status === "IN_PROGRESS") {
         html = `
-            <button class="task-btn task-ready" data-id="${taskId}" data-status="READY">
+            <button type="button" class="task-btn task-ready" data-id="${taskId}" data-status="READY">
                 ✅ Mark as Ready
             </button>
-            <button class="task-btn task-cancel" data-id="${taskId}" data-status="PENDING">
+            <button type="button" class="task-btn task-cancel" data-id="${taskId}" data-status="PENDING">
                 ↩ Cancel Progress
             </button>
         `;
@@ -360,7 +430,7 @@ function updateTaskUI(taskId, status) {
     else if (status === "READY") {
         html = `
             <span>⏳ Waiting for review</span>
-            <button class="task-btn task-cancel" data-id="${taskId}" data-status="IN_PROGRESS">
+            <button type="button" class="task-btn task-cancel" data-id="${taskId}" data-status="IN_PROGRESS">
                 ↩ Cancel Review
             </button>
         `;

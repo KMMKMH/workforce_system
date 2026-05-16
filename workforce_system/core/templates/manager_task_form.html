@@ -1,0 +1,65 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ mode }} Task | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'manager_task_form.css' %}">
+</head>
+<body>
+<div class="form-page">
+    <div class="back-nav">
+        <a href="{% url 'manager_dashboard' %}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Team Dashboard
+        </a>
+    </div>
+
+    <section class="panel create-panel">
+        <div class="section-header">
+            <h2><i class="fas fa-edit"></i> {{ mode }} Task</h2>
+        </div>
+
+        <form method="POST" class="task-form">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div>
+                    <label for="{{ form.title.id_for_label }}">Title</label>
+                    {{ form.title }}
+                </div>
+                <div>
+                    <label for="{{ form.assigned_to.id_for_label }}">Employee</label>
+                    {{ form.assigned_to }}
+                </div>
+                <div>
+                    <label for="{{ form.status.id_for_label }}">Status</label>
+                    {{ form.status }}
+                    {% if form.status.help_text %}
+                        <small class="field-help">{{ form.status.help_text }}</small>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.deadline.id_for_label }}">Deadline</label>
+                    {{ form.deadline }}
+                </div>
+                <div>
+                    <label for="{{ form.estimated_hours.id_for_label }}">Estimated Hours</label>
+                    {{ form.estimated_hours }}
+                </div>
+            </div>
+
+            <label for="{{ form.description.id_for_label }}">Description</label>
+            {{ form.description }}
+
+            {% if form.errors %}
+                <div class="form-errors">{{ form.errors }}</div>
+            {% endif %}
+
+            <button type="submit" class="primary-btn">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </form>
+    </section>
+</div>
+</body>
+</html>

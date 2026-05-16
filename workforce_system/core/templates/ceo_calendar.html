@@ -1,0 +1,25 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manager Calendar | Workforce System</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'ceo_calendar.css' %}">
+</head>
+<body>
+<div class="calendar-wrapper">
+    <div class="calendar-header">
+        <h2><i class="fas fa-calendar-alt"></i> Manager Calendar</h2>
+        <a href="{% url 'ceo_dashboard' %}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+    <div id="calendar"></div>
+    <div class="data">{{ events_json|safe }}</div>
+</div>
+<script src="{% static 'ceo_calendar.js' %}"></script>
+</body>
+</html>

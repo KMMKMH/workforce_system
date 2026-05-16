@@ -88,6 +88,7 @@ body {
 }
 
 .task-btn {
+    text-decoration: none;
     padding: 6px 14px;
     border: none;
     border-radius: 40px;
@@ -109,6 +110,10 @@ body {
 }
 .task-start {
     background: #4338CA;
+    color: white;
+}
+.task-review {
+    background: #818CF8;
     color: white;
 }
 .task-ready {

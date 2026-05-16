@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Team Analytics | Workforce System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'manager_analytics.css' %}">
+</head>
+<body class="analytics-body">
+<div class="analytics-page">
+    <div class="back-nav">
+        <a href="{% url 'manager_dashboard' %}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Team Dashboard
+        </a>
+    </div>
+
+    <h1><i class="fas fa-chart-line"></i> Team Analytics</h1>
+
+    <form method="GET" class="analytics-toolbar">
+        <div class="month-filter">
+            <label for="monthSelect">
+                <i class="fas fa-calendar-alt"></i>
+                Month
+            </label>
+
+            <select id="monthSelect" name="month" onchange="this.form.submit()">
+                {% for month in months %}
+                    <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
+                        {{ month.label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="selected-month-pill">
+            Viewing: <strong>{{ selected_month_label }}</strong>
+        </div>
+    </form>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">{{ team_count }}</span>
+                <span class="stat-label">Employees</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">{{ total_hours }}</span>
+                <span class="stat-label">Total Hours</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-business-time"></i></div>
+            <div class="stat-info">
+                <span class="stat-value">{{ avg_hours }}</span>
+                <span class="stat-label">Avg Hours / Day</span>
+            </div>
+        </div>
+        {% if anomalies %}
+            <a href="{% url 'manager_anomalies' %}?month={{ selected_month }}" class="stat-card-link">
+                <div class="stat-card anomaly-card has-anomalies">
+                    <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ anomalies }}</span>
+                        <span class="stat-label">Anomalies</span>
+                    </div>
+                    <div class="click-hint"><i class="fas fa-chevron-right"></i></div>
+                </div>
+            </a>
+        {% else %}
+            <div class="stat-card anomaly-card no-anomalies">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">Anomalies</span>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="analytics-grid">
+        <div class="card">
+            <h2><i class="fas fa-tasks"></i> Team Task Progress</h2>
+            <div class="manager-metric-list">
+                <div><span>Completed</span><strong>{{ completed }} / {{ total_tasks }}</strong></div>
+                <div><span>Ready for review</span><strong>{{ ready }}</strong></div>
+                <div><span>In progress</span><strong>{{ in_progress }}</strong></div>
+                <div><span>Pending</span><strong>{{ pending }}</strong></div>
+                <div><span>Completion rate</span><strong>{{ completion_rate }}%</strong></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-user-clock"></i> Attendance Summary</h2>
+            <div class="manager-metric-list">
+                <div><span>Total absences</span><strong>{{ absences }}</strong></div>
+                <div><span>Average completion ratio</span><strong>{{ avg_completion_ratio }}</strong></div>
+                <div><span>Tracked tasks</span><strong>{{ total_tasks }}</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="panel analytics-team-panel">
+        <div class="section-header">
+            <h2><i class="fas fa-table"></i> Employee Breakdown</h2>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Hours</th>
+                        <th>Completed</th>
+                        <th>Total Tasks</th>
+                        <th>Absences</th>
+                        <th>Anomalies</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in member_rows %}
+                        <tr>
+                            <td><strong>{{ row.employee.username }}</strong></td>
+                            <td>{{ row.hours }}</td>
+                            <td>{{ row.completed }}</td>
+                            <td>{{ row.total_tasks }}</td>
+                            <td>{{ row.absences }}</td>
+                            <td>{{ row.anomalies }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="empty-cell">No team data for this month.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+</body>
+</html>

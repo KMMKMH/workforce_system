@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Team Anomalies | Workforce System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'manager_anomalies.css' %}">
+</head>
+<body>
+<div class="manager-anomalies-page">
+    <div class="back-nav">
+        <a href="{% url 'manager_analytics' %}?month={{ selected_month }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Team Analytics
+        </a>
+    </div>
+
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-triangle-exclamation"></i> Team Anomalies</h1>
+            <p>Attendance issues grouped by employee for the selected month.</p>
+        </div>
+
+        <form method="GET" class="month-filter">
+            <label for="monthSelect">
+                <i class="fas fa-calendar-alt"></i>
+                Month
+            </label>
+            <select id="monthSelect" name="month" onchange="this.form.submit()">
+                {% for month in months %}
+                    <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
+                        {{ month.label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-card danger">
+            <span>Total Anomalies</span>
+            <strong>{{ total_anomalies }}</strong>
+        </div>
+        <div class="summary-card">
+            <span>Affected Employees</span>
+            <strong>{{ affected_employees }}</strong>
+        </div>
+        <div class="summary-card success">
+            <span>Clear Employees</span>
+            <strong>{{ clear_employees }}</strong>
+        </div>
+        <div class="summary-card">
+            <span>Viewing</span>
+            <strong class="summary-month">{{ selected_month_label }}</strong>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <aside class="employee-summary-panel">
+            <h2><i class="fas fa-users"></i> Team Summary</h2>
+
+            <div class="employee-summary-list">
+                {% for row in employee_summaries %}
+                    <div class="employee-summary-item {% if row.count %}has-issues{% endif %}">
+                        <div>
+                            <strong>{{ row.profile.user.username }}</strong>
+                            <span>{{ row.profile.position|default:"Employee" }}</span>
+                        </div>
+                        <span class="count-pill">{{ row.count }}</span>
+                    </div>
+                {% empty %}
+                    <p class="empty-text">No employees are assigned to your team.</p>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <main class="grouped-anomalies">
+            {% for group in grouped_anomalies %}
+                <section class="employee-group">
+                    <div class="employee-group-header">
+                        <div>
+                            <h2><i class="fas fa-user"></i> {{ group.profile.user.username }}</h2>
+                            <span>{{ group.profile.position|default:"Employee" }}{% if group.profile.department %} - {{ group.profile.department }}{% endif %}</span>
+                        </div>
+
+                        <div class="group-metrics">
+                            <div>
+                                <strong>{{ group.count }}</strong>
+                                <span>issues</span>
+                            </div>
+                            <div>
+                                <strong>{{ group.hours }}</strong>
+                                <span>hours</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="anomaly-card-list">
+                        {% for anomaly in group.anomalies %}
+                            <article class="anomaly-card">
+                                <div class="anomaly-card-top">
+                                    <div>
+                                        <h3><i class="fas fa-calendar-day"></i> {{ anomaly.date|date:"M d, Y" }}</h3>
+                                        <span class="status-pill status-{{ anomaly.status|lower }}">{{ anomaly.status }}</span>
+                                    </div>
+                                    <div class="hours-box">
+                                        <strong>{{ anomaly.worked_hours|floatformat:2|default:"-" }}</strong>
+                                        <span>hours</span>
+                                    </div>
+                                </div>
+
+                                <div class="time-grid">
+                                    <div>
+                                        <span>Check In</span>
+                                        <strong>{{ anomaly.check_in|date:"H:i"|default:"-" }}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Check Out</span>
+                                        <strong>{{ anomaly.check_out|date:"H:i"|default:"-" }}</strong>
+                                    </div>
+                                </div>
+
+                                <div class="reason-box">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>{{ anomaly.anomaly_reason|default:"No reason provided." }}</p>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h2>No team anomalies found</h2>
+                    <p>The selected month has no flagged attendance issues for your team.</p>
+                </div>
+            {% endfor %}
+        </main>
+    </div>
+</div>
+</body>
+</html>

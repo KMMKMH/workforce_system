@@ -8,12 +8,12 @@
     <link rel="stylesheet" href="{% static 'task_detail.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body>
+<body data-can-manage="{{ can_manage|yesno:'true,false' }}" data-review-subject="{{ review_subject }}">
 {% include "components/confirm_modal.html" %}
 {% include "components/info_modal.html" %}
     <div class="task-detail-page">
         <div class="back-nav">
-            <a href="/dashboard/" class="back-btn">
+            <a href="{{ back_url }}" class="back-btn">
                 <i class="fas fa-arrow-left"></i> Back to Dashboard
             </a>
         </div>
@@ -29,14 +29,28 @@
                 </div>
 
                 <div class="task-actions">
-                    {% if task.status == "PENDING" %}
-                        <button class="task-btn task-start" data-id="{{ task.id }}" data-status="IN_PROGRESS">▶ Start Task</button>
+                    {% if can_manage %}
+                        {% if task.status == "READY" %}
+                            <button type="button" class="task-btn task-review" data-id="{{ task.id }}" data-status="REVIEW">📋 Review</button>
+                            <button type="button" class="task-btn task-ready" data-id="{{ task.id }}" data-status="DONE">✅ Done</button>
+                            <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Send Back</button>
+                        {% elif task.status == "REVIEW" %}
+                            <button type="button" class="task-btn task-ready" data-id="{{ task.id }}" data-status="DONE">✅ Done</button>
+                            <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Send Back</button>
+                        {% elif task.status == "DONE" %}
+                            <span>Completed</span>
+                        {% else %}
+                            <span>Waiting on {{ review_subject }}</span>
+                        {% endif %}
+                        <a href="{% url edit_task_url_name task.id %}" class="task-btn task-start">✏️ Edit Task</a>
+                    {% elif task.status == "PENDING" %}
+                        <button type="button" class="task-btn task-start" data-id="{{ task.id }}" data-status="IN_PROGRESS">▶ Start Task</button>
                     {% elif task.status == "IN_PROGRESS" %}
-                        <button class="task-btn task-ready" data-id="{{ task.id }}" data-status="READY">✅ Mark as Ready</button>
-                        <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="PENDING">↩ Cancel Progress</button>
+                        <button type="button" class="task-btn task-ready" data-id="{{ task.id }}" data-status="READY">✅ Mark as Ready</button>
+                        <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="PENDING">↩ Cancel Progress</button>
                     {% elif task.status == "READY" %}
                         <span>⏳ Waiting for review</span>
-                        <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Cancel Review</button>
+                        <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Cancel Review</button>
                     {% elif task.status == "REVIEW" %}
                         <span>📋 Under review by manager</span>
                     {% elif task.status == "DONE" %}

@@ -24,7 +24,7 @@
         </div>
 
         <div class="card">
-            <p><i class="fas fa-bell"></i> Alerts</p>
+            <p><i class="fas fa-triangle-exclamation"></i> Alerts</p>
             <strong>
                 {% if alert %}<i class="fas fa-exclamation-triangle" style="color: #FB7185;"></i>{% else %}<i class="fas fa-check-circle" style="color: #34D399;"></i>{% endif %}
             </strong>
@@ -51,13 +51,15 @@
 
                     <div class="task-actions">
                         {% if task.status == "PENDING" %}
-                            <button class="task-btn task-start" data-id="{{ task.id }}" data-status="IN_PROGRESS">▶ Start Task</button>
+                            <button class="task-btn task-start" data-id="{{ task.id }}" data-status="IN_PROGRESS" data-manager="{{ show_manager_portal }}">▶ Start Task</button>
                         {% elif task.status == "IN_PROGRESS" %}
-                            <button class="task-btn task-ready" data-id="{{ task.id }}" data-status="READY">✅ Mark as Ready</button>
-                            <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="PENDING">↩ Cancel Progress</button>
+                            <button class="task-btn task-ready" data-id="{{ task.id }}" data-status="READY" data-manager="{{ show_manager_portal }}">✅ Mark as Ready</button>
+                            <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="PENDING" data-manager="{{ show_manager_portal }}">↩ Cancel Progress</button>
                         {% elif task.status == "READY" %}
                             <span>⏳ Waiting for review</span>
-                            <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Cancel Review</button>
+                            <button class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS" data-manager="{{ show_manager_portal }}">↩ Cancel Review</button>
+                        {% elif task.status == "REVIEW" and show_manager_portal %}
+                            <span>📋 Under review by CEO</span>
                         {% elif task.status == "REVIEW" %}
                             <span>📋 Under review by manager</span>
                         {% elif task.status == "DONE" %}
@@ -74,6 +76,9 @@
 
     <div class="portal-bar">
         <a href="#" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
+        {% if show_manager_portal %}
+            <a href="{% url 'manager_dashboard' %}" class="portal-btn"><i class="fas fa-users-gear"></i> Team Dashboard</a>
+        {% endif %}
         <a href="{% url 'profile' %}" class="portal-btn"><i class="fas fa-user"></i> Profile</a>
         <a href="{% url 'employee_analytics' %}" class="portal-btn"><i class="fas fa-chart-line"></i> Analytics</a>
         <a href="{% url 'calendar' %}" class="portal-btn"><i class="fas fa-calendar"></i> Calendar</a>
