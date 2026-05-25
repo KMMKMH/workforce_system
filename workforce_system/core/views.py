@@ -1,22 +1,27 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.timezone import localtime
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.contrib.auth import authenticate, login
+from django.urls import reverse
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db.models import Sum
-from datetime import datetime, time, date
+from datetime import datetime, time, date, timedelta
+from pathlib import Path
+import mimetypes
 import json, cv2, base64, ast, random, calendar
 import numpy as np
 
 from deepface import DeepFace
 from core.utils.helpers import ensure_holidays_exist, get_head_turn_direction
 from core.utils.attendance import auto_fix_attendance, handle_check_in, handle_check_out
-from core.models import Attendance, Task, Holiday, TaskCommit, User
+from core.models import Attendance, ChatMessage, ChatParticipant, Conversation, PayrollAdjustment, Task, Holiday, TaskCommit, TaskImage, User
 from core.data.display import STATUS_DISPLAY
-from core.forms import EmployeeProfileForm, ManagerTaskForm, CEOTaskForm
+from core.forms import EmployeeProfileForm, HRCreationForm, HRStaffCreationForm, HRStaffUpdateForm, HRUpdateForm, ManagerTaskForm, CEOTaskForm, PayrollBonusForm
 
 
 def manager_team_queryset(manager):
@@ -54,10 +59,347 @@ def user_can_review_task(user, task):
     return user_can_manage_task(user, task) or user_can_manage_manager_task(user, task)
 
 
+def user_can_upload_task_image(user, task):
+    if user == task.assigned_by:
+        return task.status in ["PENDING", "REVIEW"]
+
+    if user == task.assigned_to:
+        return task.status == "IN_PROGRESS"
+
+    return False
+
+
+def user_can_delete_task_image(user, task_image):
+    return task_image.uploaded_by == user
+
+
+def is_valid_cv_file(file):
+    allowed_extensions = {".pdf", ".doc", ".docx"}
+    allowed_content_types = {
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }
+    extension = Path(file.name).suffix.lower()
+
+    return extension in allowed_extensions and file.content_type in allowed_content_types
+
+
 def manager_users_queryset():
     return User.objects.filter(
         role='MANAGER'
     ).order_by('username')
+
+
+def hr_managed_users_queryset():
+    return User.objects.filter(
+        role__in=["MANAGER", "EMPLOYEE"]
+    ).select_related("profile").order_by("role", "username")
+
+
+def task_status_filter_options(selected_status):
+    options = [{"value": "ACTIVE", "label": "Active Tasks"}]
+    options.extend(
+        {"value": value, "label": label}
+        for value, label in Task.STATUS_CHOICES
+    )
+
+    for option in options:
+        option["selected"] = option["value"] == selected_status
+
+    return options
+
+
+def selected_task_status_filter(request):
+    selected_status = request.GET.get("status", "ACTIVE")
+    valid_statuses = {value for value, _ in Task.STATUS_CHOICES}
+    valid_statuses.add("ACTIVE")
+
+    if selected_status not in valid_statuses:
+        return "ACTIVE"
+
+    return selected_status
+
+
+def filter_tasks_by_status(tasks, selected_status):
+    if selected_status == "ACTIVE":
+        return tasks.exclude(status="DONE")
+
+    return tasks.filter(status=selected_status)
+
+
+def direct_chat_contacts(user):
+    active_users = User.objects.filter(
+        is_active=True,
+        role__in=["CEO", "HR", "MANAGER", "EMPLOYEE"]
+    ).exclude(id=user.id).select_related("profile").order_by("role", "username")
+
+    if user.role == "CEO":
+        return active_users.filter(role__in=["HR", "MANAGER"])
+
+    if user.role == "EMPLOYEE":
+        contact_ids = list(User.objects.filter(role="HR", is_active=True).values_list("id", flat=True))
+        if user.profile.manager_id:
+            contact_ids.append(user.profile.manager_id)
+        return active_users.filter(id__in=contact_ids)
+
+    if user.role in ["MANAGER", "HR"]:
+        return active_users
+
+    return User.objects.none()
+
+
+def direct_conversation_for_users(user, contact):
+    user_ids = sorted([user.id, contact.id])
+    direct_key = f"{user_ids[0]}:{user_ids[1]}"
+    conversation, _ = Conversation.objects.get_or_create(
+        conversation_type=Conversation.DIRECT,
+        direct_key=direct_key,
+        defaults={"title": "Direct chat"}
+    )
+    ChatParticipant.objects.get_or_create(conversation=conversation, user=user)
+    ChatParticipant.objects.get_or_create(conversation=conversation, user=contact)
+    return conversation
+
+
+def sync_team_conversation(manager):
+    conversation, _ = Conversation.objects.get_or_create(
+        conversation_type=Conversation.TEAM,
+        team_manager=manager,
+        defaults={"title": f"{manager.username}'s Team"}
+    )
+    ChatParticipant.objects.get_or_create(conversation=conversation, user=manager)
+
+    current_participant_ids = {manager.id}
+    for profile in manager.team_members.filter(user__role="EMPLOYEE", user__is_active=True).select_related("user"):
+        ChatParticipant.objects.get_or_create(conversation=conversation, user=profile.user)
+        current_participant_ids.add(profile.user_id)
+
+    ChatParticipant.objects.filter(conversation=conversation).exclude(user_id__in=current_participant_ids).delete()
+    return conversation
+
+
+def announcement_conversation():
+    conversation, _ = Conversation.objects.get_or_create(
+        conversation_type=Conversation.ANNOUNCEMENT,
+        defaults={"title": "Announcements"}
+    )
+    for user in User.objects.filter(is_active=True, role__in=["CEO", "HR", "MANAGER", "EMPLOYEE"]):
+        ChatParticipant.objects.get_or_create(conversation=conversation, user=user)
+    return conversation
+
+
+def ensure_chat_conversations(user):
+    conversations = [announcement_conversation()]
+
+    for contact in direct_chat_contacts(user):
+        conversations.append(direct_conversation_for_users(user, contact))
+
+    if user.role == "MANAGER":
+        conversations.append(sync_team_conversation(user))
+    elif user.role == "EMPLOYEE" and user.profile.manager_id:
+        conversations.append(sync_team_conversation(user.profile.manager))
+
+    return conversations
+
+
+def user_can_access_conversation(user, conversation):
+    return conversation.participants.filter(id=user.id).exists()
+
+
+def user_can_send_chat_message(user, conversation):
+    if not user_can_access_conversation(user, conversation):
+        return False
+
+    if conversation.conversation_type == Conversation.ANNOUNCEMENT:
+        return user.role in ["CEO", "HR"]
+
+    return True
+
+
+def conversation_display_title(conversation, user):
+    if conversation.conversation_type == Conversation.DIRECT:
+        other = conversation.participants.exclude(id=user.id).first()
+        return other.username if other else "Direct chat"
+
+    return conversation.title
+
+
+def conversation_subtitle(conversation, user):
+    if conversation.conversation_type == Conversation.DIRECT:
+        other = conversation.participants.exclude(id=user.id).select_related("profile").first()
+        if not other:
+            return "One on one"
+        position = other.profile.position or other.get_role_display()
+        return f"{other.get_role_display()} - {position}"
+
+    if conversation.conversation_type == Conversation.TEAM:
+        return "Team group chat"
+
+    return "Company announcements"
+
+
+def serialize_chat_message(message, user):
+    return {
+        "id": message.id,
+        "body": message.body,
+        "sender": message.sender.username,
+        "is_own": message.sender_id == user.id,
+        "created_at": localtime(message.created_at).strftime("%b %d, %H:%M"),
+    }
+
+
+@login_required
+def chat_view(request):
+    ensure_chat_conversations(request.user)
+    conversations = list(
+        Conversation.objects.filter(participants=request.user)
+        .prefetch_related("participants")
+        .order_by("-last_message_at", "conversation_type", "title")
+        .distinct()
+    )
+
+    selected_conversation = None
+    selected_id = request.GET.get("conversation")
+    if selected_id:
+        selected_conversation = next(
+            (conversation for conversation in conversations if str(conversation.id) == selected_id),
+            None
+        )
+    if not selected_conversation and conversations:
+        selected_conversation = next(
+            (conversation for conversation in conversations if user_can_send_chat_message(request.user, conversation)),
+            conversations[0]
+        )
+
+    messages = []
+    if selected_conversation:
+        messages = selected_conversation.messages.select_related("sender").order_by("created_at")
+
+    conversation_rows = []
+    for conversation in conversations:
+        last_message = conversation.messages.select_related("sender").order_by("-created_at").first()
+        conversation_rows.append({
+            "conversation": conversation,
+            "title": conversation_display_title(conversation, request.user),
+            "subtitle": conversation_subtitle(conversation, request.user),
+            "last_message": last_message,
+            "is_selected": selected_conversation and conversation.id == selected_conversation.id,
+        })
+
+    return render(request, "chat.html", {
+        "conversation_rows": conversation_rows,
+        "selected_conversation": selected_conversation,
+        "selected_title": conversation_display_title(selected_conversation, request.user) if selected_conversation else "",
+        "selected_subtitle": conversation_subtitle(selected_conversation, request.user) if selected_conversation else "",
+        "messages": messages,
+        "can_send": user_can_send_chat_message(request.user, selected_conversation) if selected_conversation else False,
+    })
+
+
+@login_required
+def chat_messages(request, conversation_id):
+    conversation = get_object_or_404(Conversation, id=conversation_id)
+    if not user_can_access_conversation(request.user, conversation):
+        return JsonResponse({"error": "You cannot access this chat."}, status=403)
+
+    messages = conversation.messages.select_related("sender").order_by("created_at")
+    return JsonResponse({
+        "messages": [serialize_chat_message(message, request.user) for message in messages],
+        "can_send": user_can_send_chat_message(request.user, conversation),
+    })
+
+
+@login_required
+@require_POST
+def chat_send_message(request, conversation_id):
+    conversation = get_object_or_404(Conversation, id=conversation_id)
+    if not user_can_send_chat_message(request.user, conversation):
+        return JsonResponse({"error": "You cannot send messages in this chat."}, status=403)
+
+    body = request.POST.get("body", "").strip()
+    if not body:
+        return JsonResponse({"error": "Message cannot be empty."}, status=400)
+
+    message = ChatMessage.objects.create(
+        conversation=conversation,
+        sender=request.user,
+        body=body
+    )
+    conversation.last_message_at = message.created_at
+    conversation.save(update_fields=["last_message_at"])
+
+    return JsonResponse({
+        "message": serialize_chat_message(message, request.user),
+    })
+
+
+def calculate_salary_adjustment(user, attendance, month_start, month_end):
+    salary = float(user.profile.salary or 0)
+    rate_month_end = date(
+        month_start.year,
+        month_start.month,
+        calendar.monthrange(month_start.year, month_start.month)[1]
+    )
+    holiday_dates = set(
+        Holiday.objects.filter(
+            date__gte=month_start,
+            date__lte=rate_month_end
+        ).values_list("date", flat=True)
+    )
+
+    working_days = 0
+    cursor = month_start
+    while cursor <= rate_month_end:
+        if cursor.weekday() < 5 and cursor not in holiday_dates:
+            working_days += 1
+        cursor += timedelta(days=1)
+
+    daily_rate = salary / working_days if salary and working_days else 0
+    hourly_rate = daily_rate / 7 if daily_rate else 0
+
+    absence_days = attendance.filter(status="ABSENT").count()
+    absence_deduction = absence_days * daily_rate
+
+    today = timezone.now().date()
+    short_hours = 0
+    for row in attendance.exclude(status__in=["ABSENT", "HOLIDAY", "WORKING_HOLIDAY"]).exclude(date=today):
+        worked_hours = row.worked_hours or 0
+        short_hours += max(7 - worked_hours, 0)
+
+    short_hours_deduction = short_hours * hourly_rate
+    holiday_overtime_hours = attendance.filter(
+        status="WORKING_HOLIDAY"
+    ).aggregate(Sum("worked_hours"))["worked_hours__sum"] or 0
+    holiday_overtime_addition = holiday_overtime_hours * hourly_rate
+    bonus_total = PayrollAdjustment.objects.filter(
+        user=user,
+        adjustment_type=PayrollAdjustment.BONUS,
+        month=month_start
+    ).aggregate(Sum("amount"))["amount__sum"] or 0
+    bonus_total = float(bonus_total)
+
+    deductions = absence_deduction + short_hours_deduction
+    additions = holiday_overtime_addition + bonus_total
+    net_adjustment = additions - deductions
+
+    return {
+        "salary_monthly": round(salary, 2),
+        "salary_deductions": round(deductions, 2),
+        "salary_additions": round(additions, 2),
+        "holiday_overtime_addition": round(holiday_overtime_addition, 2),
+        "bonus_total": round(bonus_total, 2),
+        "salary_adjustment_total": round(net_adjustment, 2),
+        "salary_adjustment_display": f"{'+' if net_adjustment >= 0 else '-'}${abs(net_adjustment):.2f}",
+        "salary_adjustment_class": "positive" if net_adjustment >= 0 else "negative",
+        "salary_adjustment_label": "Added" if net_adjustment >= 0 else "Deducted",
+        "absence_days": absence_days,
+        "short_hours": round(short_hours, 2),
+        "holiday_overtime_hours": round(holiday_overtime_hours, 2),
+        "daily_rate": round(daily_rate, 2),
+        "hourly_rate": round(hourly_rate, 2),
+        "expected_working_days": working_days,
+    }
 
 
 def build_month_choices(join_date, today):
@@ -367,6 +709,8 @@ def dashboard(request):
 
     if request.user.role == 'CEO':
         return redirect('ceo_dashboard')
+    if request.user.role == 'HR':
+        return redirect('hr_dashboard')
     
     user = request.user
     today = timezone.now().date()
@@ -376,9 +720,10 @@ def dashboard(request):
         date=today
     ).first()
 
+    selected_status = selected_task_status_filter(request)
     tasks = Task.objects.filter(
         assigned_to=user
-    ).exclude(status="DONE")
+    ).order_by('deadline', '-created_at')
 
     raw_status = attendance.status if attendance else "OFFLINE"
     status = STATUS_DISPLAY.get(raw_status, raw_status)
@@ -388,6 +733,8 @@ def dashboard(request):
         "status": status,
         "tasks": tasks,
         "tasks_count": tasks.count(),
+        "task_status_options": task_status_filter_options(selected_status),
+        "selected_task_status": selected_status,
         "alert": alerts,
         "show_manager_portal": user.role == "MANAGER",
     }
@@ -413,6 +760,9 @@ def manager_dashboard(request):
             task = task_form.save(commit=False)
             task.assigned_by = user
             task.save()
+            for image in request.FILES.getlist("initial_images"):
+                if not image.content_type or image.content_type.startswith("image/"):
+                    TaskImage.objects.create(task=task, image=image, uploaded_by=user)
             return redirect('manager_dashboard')
 
     attendance_rows = []
@@ -446,12 +796,12 @@ def manager_dashboard(request):
     all_team_tasks = Task.objects.filter(
         assigned_to__in=team_users
     ).select_related('assigned_to', 'assigned_by').order_by('deadline', '-created_at')
-    team_tasks = all_team_tasks.exclude(status='DONE')
-    completed_team_tasks = all_team_tasks.filter(status='DONE')
+    selected_status = selected_task_status_filter(request)
+    team_tasks = all_team_tasks
+    active_team_tasks = all_team_tasks.exclude(status='DONE')
 
-    open_tasks = team_tasks.count()
-    ready_tasks = team_tasks.filter(status='READY').count()
-    completed_tasks = completed_team_tasks.count()
+    open_tasks = active_team_tasks.count()
+    ready_tasks = active_team_tasks.filter(status='READY').count()
     online_count = sum(1 for row in attendance_rows if row["is_online"])
     anomaly_count = sum(1 for row in attendance_rows if row["alert"])
 
@@ -460,11 +810,11 @@ def manager_dashboard(request):
         "member_rows": member_rows,
         "attendance_rows": attendance_rows,
         "team_tasks": team_tasks,
-        "completed_team_tasks": completed_team_tasks,
+        "task_status_options": task_status_filter_options(selected_status),
+        "selected_task_status": selected_status,
         "team_count": len(team_users),
         "open_tasks": open_tasks,
         "ready_tasks": ready_tasks,
-        "completed_tasks": completed_tasks,
         "online_count": online_count,
         "anomaly_count": anomaly_count,
     })
@@ -523,6 +873,9 @@ def ceo_dashboard(request):
             task = task_form.save(commit=False)
             task.assigned_by = user
             task.save()
+            for image in request.FILES.getlist("initial_images"):
+                if not image.content_type or image.content_type.startswith("image/"):
+                    TaskImage.objects.create(task=task, image=image, uploaded_by=user)
             return redirect('ceo_dashboard')
 
     attendance_rows = []
@@ -557,12 +910,12 @@ def ceo_dashboard(request):
     all_manager_tasks = Task.objects.filter(
         assigned_to__in=managers
     ).select_related('assigned_to', 'assigned_by').order_by('deadline', '-created_at')
-    manager_tasks = all_manager_tasks.exclude(status='DONE')
-    completed_manager_tasks = all_manager_tasks.filter(status='DONE')
+    selected_status = selected_task_status_filter(request)
+    manager_tasks = all_manager_tasks
+    active_manager_tasks = all_manager_tasks.exclude(status='DONE')
 
-    open_tasks = manager_tasks.count()
-    ready_tasks = manager_tasks.filter(status='READY').count()
-    completed_tasks = completed_manager_tasks.count()
+    open_tasks = active_manager_tasks.count()
+    ready_tasks = active_manager_tasks.filter(status='READY').count()
     online_count = sum(1 for row in attendance_rows if row["is_online"])
     anomaly_count = sum(1 for row in attendance_rows if row["alert"])
 
@@ -571,13 +924,417 @@ def ceo_dashboard(request):
         "member_rows": member_rows,
         "attendance_rows": attendance_rows,
         "manager_tasks": manager_tasks,
-        "completed_manager_tasks": completed_manager_tasks,
+        "task_status_options": task_status_filter_options(selected_status),
+        "selected_task_status": selected_status,
         "manager_count": len(managers),
         "open_tasks": open_tasks,
         "ready_tasks": ready_tasks,
-        "completed_tasks": completed_tasks,
         "online_count": online_count,
         "anomaly_count": anomaly_count,
+    })
+
+
+@login_required
+def ceo_staff_management(request):
+    if request.user.role != 'CEO':
+        return redirect('dashboard')
+
+    form = HRCreationForm()
+    success_message = ""
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+        if action == "create_hr":
+            form = HRCreationForm(request.POST)
+            if form.is_valid():
+                created_user = form.save()
+                success_message = f"HR account created for {created_user.username}."
+                form = HRCreationForm()
+                if is_ajax:
+                    return JsonResponse({
+                        "success": True,
+                        "message": success_message,
+                        "hr": staff_user_payload(created_user),
+                        "hr_count": User.objects.filter(role="HR").count(),
+                    })
+            elif is_ajax:
+                return JsonResponse({
+                    "success": False,
+                    "error": form_error_text(form),
+                }, status=400)
+
+        elif action == "update_hr":
+            hr_user = get_object_or_404(User, id=request.POST.get("hr_id"), role="HR")
+            edit_form = HRUpdateForm(request.POST, user=hr_user)
+
+            if edit_form.is_valid():
+                updated_user = edit_form.save()
+                success_message = f"Updated HR account for {updated_user.username}."
+                if is_ajax:
+                    return JsonResponse({
+                        "success": True,
+                        "message": success_message,
+                        "hr": staff_user_payload(updated_user),
+                    })
+            elif is_ajax:
+                return JsonResponse({
+                    "success": False,
+                    "error": form_error_text(edit_form),
+                }, status=400)
+
+        elif action == "toggle_hr":
+            hr_user = get_object_or_404(User, id=request.POST.get("hr_id"), role="HR")
+            hr_user.is_active = not hr_user.is_active
+            hr_user.save(update_fields=["is_active"])
+            state = "activated" if hr_user.is_active else "suspended"
+            success_message = f"{hr_user.username} has been {state}."
+            if is_ajax:
+                return JsonResponse({
+                    "success": True,
+                    "message": success_message,
+                    "hr": staff_user_payload(hr_user),
+                })
+
+        elif action == "delete_hr":
+            hr_user = get_object_or_404(User, id=request.POST.get("hr_id"), role="HR")
+            hr_id = hr_user.id
+            username = hr_user.username
+            hr_user.delete()
+            success_message = f"Deleted HR account for {username}."
+            if is_ajax:
+                return JsonResponse({
+                    "success": True,
+                    "message": success_message,
+                    "hr_id": hr_id,
+                    "hr_count": User.objects.filter(role="HR").count(),
+                })
+
+    hr_users = User.objects.filter(role='HR').select_related('profile').order_by('username')
+
+    return render(request, "ceo_staff_management.html", {
+        "form": form,
+        "success_message": success_message,
+        "hr_users": hr_users,
+        "hr_count": hr_users.count(),
+    })
+
+
+def staff_user_payload(user):
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email or "No email",
+        "is_active": user.is_active,
+    }
+
+
+def form_error_text(form):
+    for errors in form.errors.values():
+        if errors:
+            return errors[0]
+
+    return "Please check the form and try again."
+
+
+@login_required
+def hr_dashboard(request):
+    if request.user.role != "HR":
+        return redirect("dashboard")
+
+    today = timezone.now().date()
+    staff_users = list(hr_managed_users_queryset())
+    attendance_today = Attendance.objects.filter(user__in=staff_users, date=today).select_related("user")
+    attendance_by_user = {row.user_id: row for row in attendance_today}
+
+    attendance_rows = []
+    for user in staff_users:
+        attendance = attendance_by_user.get(user.id)
+        raw_status = attendance.status if attendance else "OFFLINE"
+        if raw_status == "ABSENT":
+            raw_status = "OFFLINE"
+        display_status = STATUS_DISPLAY.get(raw_status, raw_status)
+        status_class = {
+            "PRESENT": "active",
+            "LOW_HOURS": "short",
+            "OFFLINE": "offline",
+            "WORKING_HOLIDAY": "overtime",
+            "HOLIDAY": "holiday",
+            "LEAVE": "leave",
+        }.get(raw_status, "offline")
+        is_online = bool(attendance and attendance.check_in and not attendance.check_out)
+        attendance_rows.append({
+            "user": user,
+            "status": display_status,
+            "status_code": raw_status,
+            "status_class": status_class,
+            "is_online": is_online,
+            "check_in": attendance.check_in if attendance else None,
+            "check_out": attendance.check_out if attendance else None,
+            "worked_hours": attendance.worked_hours if attendance else 0,
+            "alert": attendance.anomaly_reason if attendance and attendance.is_anomaly else None,
+        })
+
+    return render(request, "hr_dashboard.html", {
+        "staff_count": len(staff_users),
+        "manager_count": sum(1 for user in staff_users if user.role == "MANAGER"),
+        "employee_count": sum(1 for user in staff_users if user.role == "EMPLOYEE"),
+        "online_count": sum(1 for row in attendance_rows if row["is_online"]),
+        "anomaly_count": sum(1 for row in attendance_rows if row["alert"]),
+        "attendance_rows": attendance_rows,
+    })
+
+
+@login_required
+def hr_staff_management(request):
+    if request.user.role != "HR":
+        return redirect("dashboard")
+
+    form = HRStaffCreationForm()
+    success_message = ""
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+        if action == "create_staff":
+            form = HRStaffCreationForm(request.POST)
+            if form.is_valid():
+                user = form.save()
+                success_message = f"{user.get_role_display()} account created for {user.username}."
+                if is_ajax:
+                    return JsonResponse({
+                        "success": True,
+                        "message": success_message,
+                        "user": hr_staff_payload(user),
+                        "staff_count": hr_managed_users_queryset().count(),
+                    })
+            elif is_ajax:
+                return JsonResponse({"success": False, "error": form_error_text(form)}, status=400)
+
+        elif action == "update_staff":
+            user = get_object_or_404(User, id=request.POST.get("user_id"), role__in=["MANAGER", "EMPLOYEE"])
+            update_form = HRStaffUpdateForm(request.POST, user=user)
+            if update_form.is_valid():
+                user = update_form.save()
+                success_message = f"Updated account for {user.username}."
+                if is_ajax:
+                    return JsonResponse({
+                        "success": True,
+                        "message": success_message,
+                        "user": hr_staff_payload(user),
+                    })
+            elif is_ajax:
+                return JsonResponse({"success": False, "error": form_error_text(update_form)}, status=400)
+
+        elif action == "toggle_staff":
+            user = get_object_or_404(User, id=request.POST.get("user_id"), role__in=["MANAGER", "EMPLOYEE"])
+            user.is_active = not user.is_active
+            user.save(update_fields=["is_active"])
+            state = "activated" if user.is_active else "suspended"
+            success_message = f"{user.username} has been {state}."
+            if is_ajax:
+                return JsonResponse({
+                    "success": True,
+                    "message": success_message,
+                    "user": hr_staff_payload(user),
+                })
+
+        elif action == "delete_staff":
+            user = get_object_or_404(User, id=request.POST.get("user_id"), role__in=["MANAGER", "EMPLOYEE"])
+            user_id = user.id
+            username = user.username
+            user.delete()
+            success_message = f"Deleted account for {username}."
+            if is_ajax:
+                return JsonResponse({
+                    "success": True,
+                    "message": success_message,
+                    "user_id": user_id,
+                    "staff_count": hr_managed_users_queryset().count(),
+                })
+
+    users = hr_managed_users_queryset()
+
+    return render(request, "hr_staff_management.html", {
+        "form": form,
+        "users": users,
+        "staff_count": users.count(),
+        "managers": User.objects.filter(role="MANAGER", is_active=True).order_by("username"),
+        "success_message": success_message,
+    })
+
+
+def hr_staff_payload(user):
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email or "",
+        "role": user.role,
+        "role_label": user.get_role_display(),
+        "phone": user.phone or "",
+        "department": user.profile.department or "",
+        "position": user.profile.position or "",
+        "salary": str(user.profile.salary or ""),
+        "manager_id": user.profile.manager_id or "",
+        "manager_name": user.profile.manager.username if user.profile.manager else "No manager",
+        "is_active": user.is_active,
+    }
+
+
+@login_required
+def hr_analytics(request):
+    if request.user.role != "HR":
+        return redirect("employee_analytics")
+
+    today = timezone.now().date()
+    users = list(hr_managed_users_queryset())
+    start_date = min((user.date_joined.date() for user in users), default=today)
+    months, join_month = build_month_choices(start_date, today)
+    selected_month, month_start, month_end = parse_selected_month(request, join_month, today)
+    month_start_datetime, month_end_datetime = month_datetime_bounds(month_start, month_end)
+
+    attendance = Attendance.objects.filter(user__in=users, date__gte=month_start, date__lte=month_end)
+    tasks = Task.objects.filter(assigned_to__in=users, updated_at__gte=month_start_datetime, updated_at__lte=month_end_datetime)
+
+    working_days = attendance.filter(status__in=["PRESENT", "WORKING_HOLIDAY", "LOW_HOURS"]).count()
+    total_hours = attendance.aggregate(Sum("worked_hours"))["worked_hours__sum"] or 0
+    total_tasks = tasks.count()
+    completed = tasks.filter(status="DONE").count()
+    rows = []
+    for user in users:
+        user_attendance = attendance.filter(user=user)
+        user_tasks = tasks.filter(assigned_to=user)
+        rows.append({
+            "user": user,
+            "hours": round(user_attendance.aggregate(Sum("worked_hours"))["worked_hours__sum"] or 0, 2),
+            "anomalies": user_attendance.filter(is_anomaly=True).count(),
+            "absences": user_attendance.filter(status="ABSENT").count(),
+            "completed": user_tasks.filter(status="DONE").count(),
+            "total_tasks": user_tasks.count(),
+        })
+
+    return render(request, "hr_analytics.html", {
+        "months": months,
+        "selected_month": selected_month,
+        "selected_month_label": month_start.strftime("%B %Y"),
+        "staff_count": len(users),
+        "total_hours": round(total_hours, 2),
+        "avg_hours": round(total_hours / working_days, 2) if working_days else 0,
+        "absences": attendance.filter(status="ABSENT").count(),
+        "anomalies": attendance.filter(is_anomaly=True).count(),
+        "total_tasks": total_tasks,
+        "completed": completed,
+        "completion_rate": round((completed / total_tasks * 100), 1) if total_tasks else 0,
+        "rows": rows,
+    })
+
+
+@login_required
+def hr_accountant(request):
+    if request.user.role != "HR":
+        return redirect("dashboard")
+
+    today = timezone.now().date()
+    users = list(hr_managed_users_queryset())
+    start_date = min((user.date_joined.date() for user in users), default=today)
+    months, join_month = build_month_choices(start_date, today)
+    selected_month, month_start, month_end = parse_selected_month(request, join_month, today)
+    if selected_month == today.strftime("%Y-%m"):
+        month_end = today
+
+    rows = []
+    for user in users:
+        attendance = Attendance.objects.filter(user=user, date__gte=month_start, date__lte=month_end)
+        salary = calculate_salary_adjustment(user, attendance, month_start, month_end)
+        rows.append({
+            "user": user,
+            "salary": salary,
+            "net_pay": round(salary["salary_monthly"] + salary["salary_adjustment_total"], 2),
+        })
+
+    return render(request, "hr_accountant.html", {
+        "months": months,
+        "selected_month": selected_month,
+        "selected_month_label": month_start.strftime("%B %Y"),
+        "rows": rows,
+    })
+
+
+@login_required
+def hr_add_bonus(request):
+    if request.user.role != "HR":
+        return redirect("dashboard")
+
+    initial = {}
+    user_id = request.GET.get("user")
+    month = request.GET.get("month") or request.POST.get("month")
+
+    if user_id:
+        initial["user"] = user_id
+
+    selected_month = month or timezone.now().date().strftime("%Y-%m")
+
+    initial["month"] = selected_month
+
+    if request.method == "POST":
+        form = PayrollBonusForm(request.POST)
+
+        if form.is_valid():
+            bonus = form.save(created_by=request.user)
+            return redirect(f"{reverse('hr_accountant')}?month={bonus.month.strftime('%Y-%m')}")
+    else:
+        form = PayrollBonusForm(initial=initial)
+
+    return render(request, "hr_bonus_form.html", {
+        "form": form,
+        "mode": "Add Bonus",
+        "selected_month": selected_month,
+    })
+
+
+@login_required
+def hr_attendance_calendar(request):
+    if request.user.role != "HR":
+        return redirect("calendar")
+
+    events = []
+    for attendance in Attendance.objects.filter(user__role__in=["MANAGER", "EMPLOYEE"]).select_related("user"):
+        status = STATUS_DISPLAY.get(attendance.status, attendance.status or "Attendance")
+        anomaly_reason = attendance.anomaly_reason or "Attendance anomaly detected."
+        base_color = {
+            "ABSENT": "#EF4444",
+            "LOW_HOURS": "#F59E0B",
+            "WORKING_HOLIDAY": "#6366F1",
+            "PRESENT": "#10B981",
+        }.get(attendance.status, "#3B82F6")
+        highlight_anomaly = attendance.is_anomaly and attendance.status in ["PRESENT", "WORKING_HOLIDAY"]
+        color = "#A855F7" if highlight_anomaly else base_color
+        events.append({
+            "title": f"{attendance.user.username}: {status}",
+            "start": attendance.date.strftime("%Y-%m-%d"),
+            "allDay": True,
+            "color": color,
+            "classNames": ["attendance-anomaly"] if highlight_anomaly else ["attendance-normal"],
+            "extendedProps": {
+                "is_anomaly": attendance.is_anomaly,
+                "anomaly_reason": anomaly_reason if attendance.is_anomaly else "",
+                "user": attendance.user.username,
+                "status": status,
+            },
+        })
+
+    for holiday in Holiday.objects.all():
+        events.append({
+            "title": f"🎉 {holiday.name}",
+            "start": holiday.date.strftime("%Y-%m-%d"),
+            "allDay": True,
+            "color": "#28a745",
+        })
+
+    return render(request, "hr_attendance_calendar.html", {
+        "events_json": json.dumps(events)
     })
 
 
@@ -671,7 +1428,9 @@ def task_detail(request, task_id):
         return redirect('dashboard')
 
     commits = task.commits.select_related('user').order_by('-created_at')
-    images = task.images.all().order_by('-uploaded_at')
+    images = task.images.select_related('uploaded_by').order_by('-uploaded_at')
+    assigner_images = images.filter(uploaded_by=task.assigned_by)
+    assignee_images = images.filter(uploaded_by=task.assigned_to)
 
     can_edit = (
         task.assigned_to == request.user and
@@ -681,6 +1440,12 @@ def task_detail(request, task_id):
     can_manage_manager_task = user_can_manage_manager_task(request.user, task)
     edit_task_url_name = "ceo_edit_task" if can_manage_manager_task else "manager_edit_task"
     review_subject = "manager" if can_manage_manager_task else "employee"
+    can_upload_images = user_can_upload_task_image(request.user, task)
+    image_upload_role = ""
+    if request.user == task.assigned_by:
+        image_upload_role = "assigner"
+    elif request.user == task.assigned_to:
+        image_upload_role = "assignee"
 
     role = request.user.role
     opened_as_manager = role == "MANAGER" and request.GET.get("role") == "manager"
@@ -694,14 +1459,81 @@ def task_detail(request, task_id):
     return render(request, "task_detail.html", {
         "task": task,
         "commits": commits,
-        "images": images,
+        "assigner_images": assigner_images,
+        "assignee_images": assignee_images,
         "can_edit": can_edit,
         "can_manage": can_manage,
+        "can_upload_images": can_upload_images,
+        "image_upload_role": image_upload_role,
         "edit_task_url_name": edit_task_url_name,
         "review_subject": review_subject,
         "user_role": role,
         "back_url": back_url,
     })
+
+
+@require_POST
+@login_required
+def add_task_images(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+
+    if not user_can_upload_task_image(request.user, task):
+        return JsonResponse({
+            "success": False,
+            "error": "You cannot upload screenshots for this task right now."
+        }, status=403)
+
+    files = request.FILES.getlist("images")
+
+    if not files:
+        return JsonResponse({
+            "success": False,
+            "error": "Please choose at least one screenshot."
+        }, status=400)
+
+    uploaded_images = []
+    for image in files:
+        if image.content_type and not image.content_type.startswith("image/"):
+            continue
+
+        task_image = TaskImage.objects.create(
+            task=task,
+            image=image,
+            uploaded_by=request.user
+        )
+        uploaded_images.append({
+            "id": task_image.id,
+            "url": task_image.image.url,
+            "uploaded_by": task_image.uploaded_by.username,
+            "uploaded_at": localtime(task_image.uploaded_at).strftime("%b %d, %Y - %H:%M"),
+        })
+
+    if not uploaded_images:
+        return JsonResponse({
+            "success": False,
+            "error": "Only image files can be uploaded."
+        }, status=400)
+
+    return JsonResponse({
+        "success": True,
+        "images": uploaded_images,
+    })
+
+
+@require_POST
+@login_required
+def delete_task_image(request, image_id):
+    task_image = get_object_or_404(TaskImage, id=image_id)
+
+    if not user_can_delete_task_image(request.user, task_image):
+        return JsonResponse({
+            "success": False,
+            "error": "You cannot delete this screenshot."
+        }, status=403)
+
+    task_image.image.delete(save=False)
+    task_image.delete()
+    return JsonResponse({"success": True})
 
 
 @require_POST
@@ -983,21 +1815,228 @@ def ceo_analytics(request):
         "manager_rows": manager_rows,
     })
 
+
+@login_required
+def ceo_anomalies(request):
+    if request.user.role != 'CEO':
+        return redirect('employee_anomalies')
+
+    today = timezone.now().date()
+    managers = list(manager_users_queryset().select_related('profile'))
+    start_date = min((manager.date_joined.date() for manager in managers), default=today)
+    months, join_month = build_month_choices(start_date, today)
+    selected_month, month_start, month_end = parse_selected_month(request, join_month, today)
+
+    grouped_anomalies = []
+    total_anomalies = 0
+    affected_managers = 0
+
+    for manager in managers:
+        anomalies = list(Attendance.objects.filter(
+            user=manager,
+            date__gte=month_start,
+            date__lte=month_end,
+            is_anomaly=True
+        ).order_by("-date"))
+
+        total_anomalies += len(anomalies)
+
+        if anomalies:
+            affected_managers += 1
+            grouped_anomalies.append({
+                "manager": manager,
+                "profile": manager.profile,
+                "anomalies": anomalies,
+                "count": len(anomalies),
+                "hours": round(sum(a.worked_hours or 0 for a in anomalies), 2),
+            })
+
+    manager_summaries = []
+    for manager in managers:
+        manager_count = Attendance.objects.filter(
+            user=manager,
+            date__gte=month_start,
+            date__lte=month_end,
+            is_anomaly=True
+        ).count()
+
+        manager_summaries.append({
+            "manager": manager,
+            "profile": manager.profile,
+            "count": manager_count,
+        })
+
+    return render(request, "ceo_anomalies.html", {
+        "months": months,
+        "selected_month": selected_month,
+        "selected_month_label": month_start.strftime("%B %Y"),
+        "manager_count": len(managers),
+        "total_anomalies": total_anomalies,
+        "affected_managers": affected_managers,
+        "clear_managers": len(managers) - affected_managers,
+        "grouped_anomalies": grouped_anomalies,
+        "manager_summaries": manager_summaries,
+    })
+
+
 @login_required
 def profile_view(request):
     profile = request.user.profile
+    can_manage_own_biometrics = request.user.role in ['CEO', 'HR']
+    can_upload_own_cv = request.user.role in ['MANAGER', 'EMPLOYEE']
+    can_edit_own_identity = request.user.role == 'CEO'
 
     if request.method == "POST":
         form = EmployeeProfileForm(request.POST, instance=profile)
-        if form.is_valid():
+        action = request.POST.get("action")
+
+        if can_manage_own_biometrics and action == "toggle_biometrics":
+            profile.biometric_enabled = not profile.biometric_enabled
+            profile.save(update_fields=["biometric_enabled"])
+
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({
+                    "success": True,
+                    "biometric_enabled": profile.biometric_enabled,
+                })
+
+            return redirect('profile')
+        elif can_upload_own_cv and action == "upload_cv":
+            cv_file = request.FILES.get("cv")
+
+            if not cv_file or not is_valid_cv_file(cv_file):
+                if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                    return JsonResponse({
+                        "success": False,
+                        "error": "Please upload a valid CV document (.pdf, .doc, or .docx)."
+                    }, status=400)
+                return redirect('profile')
+
+            if profile.cv:
+                profile.cv.delete(save=False)
+
+            profile.cv = cv_file
+            profile.save(update_fields=["cv"])
+
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({
+                    "success": True,
+                    "cv_url": reverse("profile_cv"),
+                    "cv_name": Path(profile.cv.name).name,
+                })
+
+            return redirect('profile')
+        elif action in [None, "save_profile"] and form.is_valid():
+            phone = request.POST.get("phone", "").strip()
+
+            if len(phone) > 15:
+                if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                    return JsonResponse({
+                        "success": False,
+                        "error": "Phone number must be 15 characters or fewer.",
+                    }, status=400)
+                return redirect('profile')
+
+            request.user.phone = phone
+            user_update_fields = ["phone"]
+
+            if can_edit_own_identity:
+                username = request.POST.get("username", "").strip()
+                email = request.POST.get("email", "").strip()
+
+                if not username:
+                    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                        return JsonResponse({
+                            "success": False,
+                            "error": "Username cannot be empty.",
+                        }, status=400)
+                    return redirect('profile')
+
+                if not email:
+                    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                        return JsonResponse({
+                            "success": False,
+                            "error": "Email cannot be empty.",
+                        }, status=400)
+                    return redirect('profile')
+
+                try:
+                    validate_email(email)
+                except ValidationError:
+                    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                        return JsonResponse({
+                            "success": False,
+                            "error": "Please enter a valid email address.",
+                        }, status=400)
+                    return redirect('profile')
+
+                if User.objects.exclude(pk=request.user.pk).filter(username=username).exists():
+                    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                        return JsonResponse({
+                            "success": False,
+                            "error": "That username is already taken.",
+                        }, status=400)
+                    return redirect('profile')
+
+                if User.objects.exclude(pk=request.user.pk).filter(email=email).exists():
+                    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                        return JsonResponse({
+                            "success": False,
+                            "error": "That email address is already used.",
+                        }, status=400)
+                    return redirect('profile')
+
+                request.user.username = username
+                request.user.email = email
+                user_update_fields.extend(["username", "email"])
+
+            request.user.save(update_fields=user_update_fields)
+
             form.save()
+
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({
+                    "success": True,
+                    "address": profile.address or "",
+                    "username": request.user.username,
+                    "email": request.user.email,
+                    "phone": request.user.phone or "",
+                })
+
+        elif request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "errors": form.errors,
+            }, status=400)
     else:
         form = EmployeeProfileForm(instance=profile)
 
     return render(request, "profile.html", {
         "form": form,
-        "profile": profile
+        "profile": profile,
+        "is_high_priority_role": request.user.role in ['CEO', 'HR'],
+        "can_manage_own_biometrics": can_manage_own_biometrics,
+        "can_upload_own_cv": can_upload_own_cv,
+        "can_edit_own_identity": can_edit_own_identity,
     })
+
+
+@login_required
+def profile_cv(request):
+    profile = request.user.profile
+
+    if not profile.cv:
+        raise Http404("CV not found.")
+
+    content_type, _ = mimetypes.guess_type(profile.cv.name)
+    filename = Path(profile.cv.name).name
+
+    return FileResponse(
+        profile.cv.open("rb"),
+        as_attachment=False,
+        filename=filename,
+        content_type=content_type or "application/octet-stream",
+    )
 
 
 @login_required
@@ -1214,6 +2253,7 @@ def employee_analytics(request):
     total_hours = attendance.aggregate(Sum("worked_hours"))["worked_hours__sum"] or 0
     avg_hours = total_hours / total_working_days if total_working_days else 0
     anomalies = attendance.filter(is_anomaly=True).count()
+    salary_adjustment = calculate_salary_adjustment(user, attendance, month_start, month_end)
 
     tasks = user.tasks.filter(
         updated_at__gte=month_start_datetime,
@@ -1277,6 +2317,7 @@ def employee_analytics(request):
 
         "trend": trend,
         "trend_class": trend_class,
+        **salary_adjustment,
     }
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest":

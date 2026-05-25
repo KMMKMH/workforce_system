@@ -4,11 +4,13 @@
 <head>
     <title>Profile</title>
 
-    <link rel="stylesheet" href="{% static 'profile.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/profile_light.css' %}{% else %}{% static 'themes/dark/profile.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/profile.css' %}" data-light-theme="{% static 'themes/light/profile_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
 <body>
+{% include "components/info_modal.html" %}
 
 <div class="profile-container">
 
@@ -25,16 +27,30 @@
 
         <div class="info">
             <label>Username</label>
-            <p>{{ request.user.username }}</p>
+            {% if can_edit_own_identity %}
+                <input form="profileInfoForm" type="text" name="username" value="{{ request.user.username }}" maxlength="150" required>
+            {% else %}
+                <p>{{ request.user.username }}</p>
+            {% endif %}
         </div>
 
         <div class="info">
             <label>Email</label>
-            <p>{{ request.user.email }}</p>
+            {% if can_edit_own_identity %}
+                <input form="profileInfoForm" type="email" name="email" value="{{ request.user.email }}" required>
+            {% else %}
+                <p>{{ request.user.email }}</p>
+            {% endif %}
         </div>
 
-        <form method="POST">
+        <div class="info">
+            <label>Phone</label>
+            <input form="profileInfoForm" type="tel" name="phone" value="{{ request.user.phone|default:'' }}" maxlength="15">
+        </div>
+
+        <form method="POST" id="profileInfoForm">
             {% csrf_token %}
+            <input type="hidden" name="action" value="save_profile">
 
             <label>Address</label>
             {{ form.address }}
@@ -42,32 +58,35 @@
             <button type="submit" class="btn primary">
                 <i class="fas fa-save"></i> Save
             </button>
+            <span class="form-feedback" id="profileFormFeedback"></span>
         </form>
     </div>
 
-    <div class="card locked">
-        <h2>Work Info</h2>
+    {% if not is_high_priority_role %}
+        <div class="card locked">
+            <h2>Work Info</h2>
 
-        <div class="info">
-            <label>Department</label>
-            <p>{{ profile.department }}</p>
-        </div>
+            <div class="info">
+                <label>Department</label>
+                <p>{{ profile.department }}</p>
+            </div>
 
-        <div class="info">
-            <label>Position</label>
-            <p>{{ profile.position }}</p>
-        </div>
+            <div class="info">
+                <label>Position</label>
+                <p>{{ profile.position }}</p>
+            </div>
 
-        <div class="info">
-            <label>Salary</label>
-            <p>${{ profile.salary }}</p>
-        </div>
+            <div class="info">
+                <label>Salary</label>
+                <p>${{ profile.salary }}</p>
+            </div>
 
-        <div class="info">
-            <label>Manager</label>
-            <p>{{ profile.manager }}</p>
+            <div class="info">
+                <label>Manager</label>
+                <p>{{ profile.manager }}</p>
+            </div>
         </div>
-    </div>
+    {% endif %}
 
     <div class="card">
         <h2><i class="fas fa-shield-alt"></i> Security</h2>
@@ -82,34 +101,78 @@
             <label><i class="fas fa-fingerprint"></i> Biometric Authentication</label>
             <div class="biometric-status-wrapper">
                 {% if profile.biometric_enabled %}
-                    <p class="status enabled">
+                    <p class="status enabled" id="biometricStatus">
                         <i class="fas fa-check-circle"></i> Enabled
                     </p>
                 {% else %}
-                    <p class="status disabled">
+                    <p class="status disabled" id="biometricStatus">
                         <i class="fas fa-times-circle"></i> Disabled
                     </p>
                 {% endif %}
-                <span class="hr-badge">
-                    <i class="fas fa-lock"></i> Managed by HR
-                </span>
+                {% if can_manage_own_biometrics %}
+                    <form method="POST" class="biometric-toggle-form" id="biometricToggleForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_biometrics">
+                        <button type="submit" id="biometricToggleBtn" class="btn biometric-toggle-btn {% if profile.biometric_enabled %}toggle-disable{% else %}toggle-enable{% endif %}">
+                            {% if profile.biometric_enabled %}
+                                <i class="fas fa-toggle-off"></i> Disable
+                            {% else %}
+                                <i class="fas fa-toggle-on"></i> Enable
+                            {% endif %}
+                        </button>
+                    </form>
+                {% else %}
+                    <span class="hr-badge">
+                        <i class="fas fa-lock"></i> Managed by HR
+                    </span>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="card">
-        <h2>CV</h2>
+    {% if not is_high_priority_role %}
+        <div class="card">
+            <h2><i class="fas fa-file-lines"></i> CV</h2>
 
-        {% if profile.cv %}
-            <a href="{{ profile.cv.url }}" target="_blank" class="btn secondary">
-                <i class="fas fa-file-pdf"></i> View CV
-            </a>
-        {% else %}
-            <p>No CV uploaded</p>
-        {% endif %}
-    </div>
+            <div class="cv-current" id="cvCurrent">
+                {% if profile.cv %}
+                    <a href="{% url 'profile_cv' %}" target="_blank" class="btn secondary" id="cvViewLink">
+                        <i class="fas fa-file-pdf"></i> View CV
+                    </a>
+                {% else %}
+                    <p id="noCvText">No CV uploaded</p>
+                {% endif %}
+            </div>
+
+            {% if can_upload_own_cv %}
+                <form method="POST" enctype="multipart/form-data" id="cvUploadForm" class="cv-upload-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="upload_cv">
+
+                    <label for="cvInput" class="cv-picker">
+                        <span class="cv-picker-icon"><i class="fas fa-cloud-arrow-up"></i></span>
+                        <span>
+                            <strong>Choose CV document</strong>
+                            <small>PDF, DOC, or DOCX</small>
+                        </span>
+                    </label>
+                    <input id="cvInput" type="file" name="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+
+                    <div class="cv-selected" id="cvSelected">No document selected</div>
+
+                    <button type="submit" class="btn primary" id="cvSaveBtn">
+                        <i class="fas fa-save"></i> Save CV
+                    </button>
+                    <span class="form-feedback" id="cvFormFeedback"></span>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
 
 </div>
 
+<script src="{% static 'info_modal.js' %}"></script>
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'profile.js' %}"></script>
 </body>
 </html>

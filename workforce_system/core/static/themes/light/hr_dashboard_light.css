@@ -1,0 +1,9 @@
+@import url("ceo_dashboard_light.css");
+
+.section-header {
+    align-items: center;
+}
+
+.filter-empty-message {
+    margin-top: 14px;
+}

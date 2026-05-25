@@ -1,0 +1,122 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HR Staff Management | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_staff_management_light.css' %}{% else %}{% static 'themes/dark/hr_staff_management.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_staff_management.css' %}" data-light-theme="{% static 'themes/light/hr_staff_management_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body>
+{% include "components/info_modal.html" %}
+{% include "components/confirm_modal.html" %}
+<div class="staff-page">
+    <div class="back-nav"><a href="{% url 'hr_dashboard' %}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a></div>
+    <header class="page-header">
+        <div>
+            <h1><i class="fas fa-users-gear"></i> Staff Management</h1>
+            <p>Create and manage managers and employees.</p>
+        </div>
+        <div class="count-card"><span>Staff Accounts</span><strong id="staffCount">{{ staff_count }}</strong></div>
+    </header>
+
+    <div class="success-banner" id="staffFeedback" {% if not success_message %}hidden{% endif %}>
+        <i class="fas fa-check-circle"></i><span>{{ success_message }}</span>
+    </div>
+
+    <div class="staff-grid">
+        <section class="panel">
+            <div class="section-header"><h2><i class="fas fa-user-plus"></i> Create Account</h2></div>
+            <form method="POST" class="staff-form" id="createStaffForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_staff">
+                <label>Username</label>{{ form.username }}
+                <label>Email</label>{{ form.email }}
+                <label>Role</label>{{ form.role }}
+                <label>Phone</label>{{ form.phone }}
+                <label>Department</label>{{ form.department }}
+                <label>Position</label>{{ form.position }}
+                <label>Salary</label>{{ form.salary }}
+                <label>Manager</label>{{ form.manager }}
+                <label>Password</label>{{ form.password }}
+                <label>Confirm Password</label>{{ form.confirm_password }}
+                <button type="submit" class="primary-btn"><i class="fas fa-save"></i> Create Account</button>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> Existing Staff</h2>
+                <div class="search-filter">
+                    <label for="staffSearchInput"><i class="fas fa-search"></i></label>
+                    <input id="staffSearchInput" type="search" placeholder="Search staff" autocomplete="off">
+                </div>
+            </div>
+            <div class="staff-list" id="staffList">
+                {% for user in users %}
+                    <article class="staff-card {% if not user.is_active %}is-suspended{% endif %}" data-user-id="{{ user.id }}" data-search="{{ user.username }} {{ user.email|default:'' }} {{ user.get_role_display }} {{ user.profile.department|default:'' }} {{ user.profile.position|default:'' }} {{ user.profile.manager.username|default:'No manager' }}">
+                        <div class="staff-card-header">
+                            <div>
+                                <strong class="staff-username">{{ user.username }}</strong>
+                                <span class="staff-email">{{ user.email|default:"No email" }}</span>
+                                <span>{{ user.profile.position|default:"-" }}{% if user.profile.department %}, {{ user.profile.department }}{% endif %}</span>
+                                <span>Manager: <span class="staff-manager-name">{{ user.profile.manager.username|default:"No manager" }}</span></span>
+                            </div>
+                            <div class="staff-badges">
+                                <span class="role-badge"><i class="fas fa-id-badge"></i> <span class="staff-role-label">{{ user.get_role_display }}</span></span>
+                                {% if user.is_active %}
+                                    <span class="state-badge active"><i class="fas fa-circle-check"></i> Active</span>
+                                {% else %}
+                                    <span class="state-badge suspended"><i class="fas fa-ban"></i> Suspended</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <form method="POST" class="staff-form compact-form" hidden>
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_staff">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <div class="inline-grid">
+                                <div><label>Username</label><input type="text" name="username" value="{{ user.username }}" maxlength="150" required></div>
+                                <div><label>Email</label><input type="email" name="email" value="{{ user.email }}" required></div>
+                                <div><label>Role</label><select name="role" required><option value="EMPLOYEE" {% if user.role == "EMPLOYEE" %}selected{% endif %}>Employee</option><option value="MANAGER" {% if user.role == "MANAGER" %}selected{% endif %}>Manager</option></select></div>
+                                <div><label>Phone</label><input type="text" name="phone" value="{{ user.phone|default:'' }}"></div>
+                                <div><label>Department</label><input type="text" name="department" value="{{ user.profile.department|default:'' }}"></div>
+                                <div><label>Position</label><input type="text" name="position" value="{{ user.profile.position|default:'' }}"></div>
+                                <div><label>Salary</label><input type="number" step="0.01" name="salary" value="{{ user.profile.salary|default:'' }}"></div>
+                                <div><label>Manager</label><select name="manager"><option value="">No manager</option>{% for manager in managers %}<option value="{{ manager.id }}" {% if user.profile.manager_id == manager.id %}selected{% endif %}>{{ manager.username }}</option>{% endfor %}</select></div>
+                                <div><label>New Password</label><input type="password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" name="password" placeholder="Leave blank to keep"></div>
+                                <div><label>Confirm Password</label><input type="password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" name="confirm_password" placeholder="Leave blank to keep"></div>
+                            </div>
+                            <div class="staff-actions">
+                                <button type="submit" class="primary-btn small-btn"><i class="fas fa-save"></i> Save Changes</button>
+                                <button type="button" class="secondary-btn cancel-edit-btn"><i class="fas fa-times"></i> Cancel</button>
+                            </div>
+                        </form>
+
+                        <div class="staff-actions split-actions">
+                            <button type="button" class="secondary-btn edit-staff-btn"><i class="fas fa-pen"></i> Edit</button>
+                            <form method="POST" class="toggle-staff-form">{% csrf_token %}<input type="hidden" name="action" value="toggle_staff"><input type="hidden" name="user_id" value="{{ user.id }}"><button type="submit" class="secondary-btn toggle-staff-btn">{% if user.is_active %}<i class="fas fa-ban"></i> Suspend{% else %}<i class="fas fa-circle-check"></i> Activate{% endif %}</button></form>
+                            <form method="POST" class="delete-staff-form">{% csrf_token %}<input type="hidden" name="action" value="delete_staff"><input type="hidden" name="user_id" value="{{ user.id }}"><button type="submit" class="danger-btn"><i class="fas fa-trash"></i> Delete</button></form>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="empty-message" id="emptyStaffMessage">No staff accounts have been created yet.</p>
+                {% endfor %}
+                <p class="empty-message filter-empty-message" id="staffSearchEmpty" hidden>No matching staff accounts</p>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    window.hrManagers = [{% for manager in managers %}{id: "{{ manager.id }}", username: "{{ manager.username|escapejs }}"},{% endfor %}];
+</script>
+<script src="{% static 'info_modal.js' %}"></script>
+<script src="{% static 'confirm_modal.js' %}"></script>
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'password_toggle.js' %}"></script>
+<script src="{% static 'hr_staff_management.js' %}"></script>
+</body>
+</html>

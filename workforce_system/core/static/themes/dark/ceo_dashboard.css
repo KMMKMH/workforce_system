@@ -46,6 +46,21 @@ body {
     border-color: rgba(255, 255, 255, 0.2);
 }
 
+.top-band button.card {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.top-band .metric-shortcut:focus-visible {
+    outline: 3px solid rgba(129, 140, 248, 0.45);
+    outline-offset: 3px;
+}
+
+.top-band .metric-shortcut:hover {
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
 .top-band .card p {
     font-size: 14px;
     color: #94A3B8;
@@ -59,11 +74,12 @@ body {
 .top-band .card strong {
     font-size: 28px;
     font-weight: 600;
+    color: #FEFBF6;
 }
 
-.status-active { color: #34D399; }
-.status-ready { color: #818CF8; }
-.status-alert { color: #FB7185; }
+.status-active { color: #34D399 !important; }
+.status-ready { color: #818CF8 !important; }
+.status-alert { color: #FB7185 !important; }
 
 .main-area {
     flex: 1;
@@ -114,6 +130,15 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
+}
+
+.dashboard-grid .section-header .search-filter {
+    margin-left: auto;
+}
+
+.dashboard-grid .section-header .search-filter input {
+    width: clamp(120px, 14vw, 190px);
 }
 
 .task-form label {
@@ -198,13 +223,6 @@ body {
     margin: 0;
 }
 
-.task-form input[type="date"]:focus::-webkit-calendar-picker-indicator,
-.task-form input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator,
-.task-form input[type="date"]:hover::-webkit-calendar-picker-indicator,
-.task-form input[type="datetime-local"]:hover::-webkit-calendar-picker-indicator {
-    opacity: 0;
-}
-
 .task-form input[type="date"]:focus,
 .task-form input[type="datetime-local"]:focus,
 .task-form input[type="date"]:hover,
@@ -237,6 +255,8 @@ body {
     align-items: center;
     gap: 8px;
     transition: all 0.2s;
+    border: none;
+    cursor: pointer;
 }
 
 .primary-btn:hover {
@@ -283,7 +303,7 @@ td span:last-child {
 
 .status-pill {
     display: inline-block;
-    padding: 4px 4px;
+    padding: 4px 12px;
     border-radius: 40px;
     font-weight: 600;
     font-size: 12px;
@@ -602,6 +622,11 @@ td span:last-child {
     animation: blink 1s infinite;
 }
 
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
 @media (max-width: 1000px) {
     .form-grid {
         grid-template-columns: 1fr;
@@ -632,4 +657,258 @@ td span:last-child {
         padding: 6px 12px;
         font-size: 12px;
     }
+}
+
+.theme-toggle {
+    background: rgba(255, 255, 255, 0.05);
+    color: #CBD5E1;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 40px;
+    padding: 6px 12px 6px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+    background: rgba(129, 140, 248, 0.18);
+    color: #FFFFFF;
+    transform: translateY(-2px);
+}
+
+.theme-toggle-track {
+    width: 42px;
+    height: 24px;
+    border-radius: 40px;
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.theme-toggle-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #818CF8;
+    color: #FFFFFF;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.theme-toggle.is-light .theme-toggle-thumb {
+    transform: translateX(18px);
+    background: #F59E0B;
+}
+
+.theme-toggle-text {
+    min-width: 34px;
+    text-align: left;
+}
+
+/* Task filter toolbar – dark theme */
+.task-filter-toolbar {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.search-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 40px;
+    padding: 9px 16px;
+}
+
+.search-filter label {
+    color: #818CF8;
+    display: inline-flex;
+    align-items: center;
+}
+
+.search-filter input {
+    width: clamp(150px, 18vw, 240px);
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #FEFBF6;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 2px 4px;
+}
+
+.search-filter input::placeholder {
+    color: #94A3B8;
+}
+
+.search-filter input::-webkit-search-cancel-button,
+.search-filter input::-webkit-search-decoration {
+    display: none;
+}
+
+.search-filter:focus-within {
+    border-color: rgba(251, 113, 133, 0.45);
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.14);
+}
+
+.status-filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 40px;
+    padding: 6px 16px;
+}
+
+.status-filter label {
+    color: #94A3B8;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.status-filter label i {
+    color: #818CF8;
+}
+
+.status-filter select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    color: #FEFBF6;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-width: 130px;
+    padding: 6px 28px 6px 4px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+}
+
+.status-filter select:hover,
+.status-filter select:focus {
+    color: #FB7185;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23FB7185' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.status-filter option {
+    background: #1E293B;
+    color: #F1F5F9;
+}
+
+/* Image picker – dark theme */
+.initial-image-picker {
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 22px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 14px;
+    display: grid;
+    gap: 12px;
+}
+
+.image-picker-btn {
+    width: fit-content;
+    margin: 0;
+    background: rgba(52, 211, 153, 0.1);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    border-radius: 40px;
+    color: #34D399;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 16px;
+    transition: all 0.2s ease;
+}
+
+.image-picker-btn:hover {
+    background: #34D399;
+    color: #0F172A;
+    border-color: #34D399;
+    transform: translateY(-1px);
+}
+
+.initial-image-input {
+    display: none;
+}
+
+.selected-image-list {
+    color: #94A3B8;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+    min-height: 32px;
+    align-items: center;
+}
+
+.selected-image-chip {
+    max-width: 260px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 40px;
+    color: #CBD5E1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+}
+
+.selected-image-chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selected-image-chip button {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(251, 113, 133, 0.2);
+    color: #FB7185;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    transition: all 0.2s ease;
+}
+
+.selected-image-chip button:hover {
+    background: #FB7185;
+    color: white;
+}
+
+.filter-empty-message {
+    margin-top: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 22px;
 }

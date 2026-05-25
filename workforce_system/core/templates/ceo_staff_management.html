@@ -1,0 +1,188 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Staff Management | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/ceo_staff_management_light.css' %}{% else %}{% static 'themes/dark/ceo_staff_management.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/ceo_staff_management.css' %}" data-light-theme="{% static 'themes/light/ceo_staff_management_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body>
+{% include "components/info_modal.html" %}
+{% include "components/confirm_modal.html" %}
+<div class="staff-page">
+    <div class="back-nav">
+        <a href="{% url 'ceo_dashboard' %}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <header class="page-header">
+        <div>
+            <h1><i class="fas fa-user-shield"></i> Staff Management</h1>
+            <p>Create and monitor high-priority HR accounts.</p>
+        </div>
+        <div class="count-card">
+            <span>HR Accounts</span>
+            <strong id="hrCount">{{ hr_count }}</strong>
+        </div>
+    </header>
+
+    <div class="success-banner" id="staffFeedback" {% if not success_message %}hidden{% endif %}>
+            <i class="fas fa-check-circle"></i>
+            <span>{{ success_message }}</span>
+    </div>
+
+    <div class="staff-grid">
+        <section class="panel">
+            <div class="section-header">
+                <h2><i class="fas fa-user-plus"></i> Create HR Account</h2>
+            </div>
+
+            <form method="POST" class="staff-form" id="createHrForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_hr">
+
+                <label for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+                {% for error in form.username.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+
+                <label for="{{ form.email.id_for_label }}">Email</label>
+                {{ form.email }}
+                {% for error in form.email.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+
+                <label for="{{ form.password.id_for_label }}">Password</label>
+                {{ form.password }}
+                {% for error in form.password.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+
+                <label for="{{ form.confirm_password.id_for_label }}">Confirm Password</label>
+                {{ form.confirm_password }}
+                {% for error in form.confirm_password.errors %}
+                    <p class="field-error">{{ error }}</p>
+                {% endfor %}
+
+                {% if form.non_field_errors %}
+                    <div class="form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <button type="submit" class="primary-btn">
+                    <i class="fas fa-save"></i> Create HR
+                </button>
+            </form>
+        </section>
+
+        <section class="panel">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> Existing HR</h2>
+                <div class="search-filter">
+                    <label for="hrSearchInput"><i class="fas fa-search"></i></label>
+                    <input id="hrSearchInput" type="search" placeholder="Search HR" autocomplete="off">
+                </div>
+            </div>
+
+            <div class="staff-list" id="hrList">
+                {% for hr in hr_users %}
+                    <article class="staff-card {% if not hr.is_active %}is-suspended{% endif %}" data-hr-id="{{ hr.id }}" data-search="{{ hr.username }} {{ hr.email|default:'' }} HR {% if hr.is_active %}Active{% else %}Suspended{% endif %}">
+                        <div class="staff-card-header">
+                            <div>
+                                <strong class="hr-username">{{ hr.username }}</strong>
+                                <span class="hr-email">{{ hr.email|default:"No email" }}</span>
+                            </div>
+                            <div class="staff-badges">
+                                <span class="role-badge"><i class="fas fa-id-badge"></i> HR</span>
+                                {% if hr.is_active %}
+                                    <span class="state-badge active"><i class="fas fa-circle-check"></i> Active</span>
+                                {% else %}
+                                    <span class="state-badge suspended"><i class="fas fa-ban"></i> Suspended</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <form method="POST" class="staff-form compact-form" hidden>
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_hr">
+                            <input type="hidden" name="hr_id" value="{{ hr.id }}">
+
+                            <div class="inline-grid">
+                                <div>
+                                    <label for="hr_username_{{ hr.id }}">Username</label>
+                                    <input id="hr_username_{{ hr.id }}" type="text" name="username" value="{{ hr.username }}" maxlength="150" required>
+                                </div>
+
+                                <div>
+                                    <label for="hr_email_{{ hr.id }}">Email</label>
+                                    <input id="hr_email_{{ hr.id }}" type="email" name="email" value="{{ hr.email }}" required>
+                                </div>
+
+                                <div>
+                                    <label for="hr_password_{{ hr.id }}">New Password</label>
+                                    <input id="hr_password_{{ hr.id }}" type="password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" name="password" placeholder="Leave blank to keep">
+                                </div>
+
+                                <div>
+                                    <label for="hr_confirm_{{ hr.id }}">Confirm Password</label>
+                                    <input id="hr_confirm_{{ hr.id }}" type="password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" name="confirm_password" placeholder="Leave blank to keep">
+                                </div>
+                            </div>
+
+                            <div class="staff-actions">
+                                <button type="submit" class="primary-btn small-btn">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                                <button type="button" class="secondary-btn cancel-edit-btn">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="staff-actions split-actions">
+                            <button type="button" class="secondary-btn edit-hr-btn">
+                                <i class="fas fa-pen"></i> Edit
+                            </button>
+
+                            <form method="POST" class="toggle-hr-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_hr">
+                                <input type="hidden" name="hr_id" value="{{ hr.id }}">
+                                <button type="submit" class="secondary-btn toggle-hr-btn">
+                                    {% if hr.is_active %}
+                                        <i class="fas fa-ban"></i> Suspend
+                                    {% else %}
+                                        <i class="fas fa-circle-check"></i> Activate
+                                    {% endif %}
+                                </button>
+                            </form>
+
+                            <form method="POST" class="delete-hr-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_hr">
+                                <input type="hidden" name="hr_id" value="{{ hr.id }}">
+                                <button type="submit" class="danger-btn">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="empty-message" id="emptyHrMessage">No HR accounts have been created yet.</p>
+                {% endfor %}
+                <p class="empty-message filter-empty-message" id="hrSearchEmpty" hidden>No matching HR accounts</p>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="{% static 'info_modal.js' %}"></script>
+<script src="{% static 'confirm_modal.js' %}"></script>
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'password_toggle.js' %}"></script>
+<script src="{% static 'ceo_staff_management.js' %}"></script>
+</body>
+</html>

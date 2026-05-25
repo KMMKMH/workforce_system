@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HR Accountant | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_analytics_light.css' %}{% else %}{% static 'themes/dark/hr_analytics.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_analytics.css' %}" data-light-theme="{% static 'themes/light/hr_analytics_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body class="analytics-body">
+<div class="analytics-page">
+    <div class="back-nav"><a href="{% url 'hr_dashboard' %}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a></div>
+    <h1><i class="fas fa-file-invoice-dollar"></i> Accountant Payroll</h1>
+    <form method="GET" class="analytics-toolbar">
+        <div class="month-filter"><label for="monthSelect"><i class="fas fa-calendar-alt"></i> Month</label><select id="monthSelect" name="month" onchange="this.form.submit()">{% for month in months %}<option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>{{ month.label }}</option>{% endfor %}</select></div>
+        <div class="selected-month-pill">Viewing: <strong>{{ selected_month_label }}</strong></div>
+    </form>
+    <section class="panel analytics-managers-panel">
+        <div class="section-header">
+            <h2><i class="fas fa-table"></i> Salary Adjustments</h2>
+            <div class="search-filter">
+                <label for="analyticsSearchInput"><i class="fas fa-search"></i></label>
+                <input id="analyticsSearchInput" type="search" placeholder="Search payroll" autocomplete="off" data-search-target=".analytics-search-row" data-empty-target="analyticsSearchEmpty">
+            </div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Monthly Salary</th><th>Deductions</th><th>Holiday Overtime</th><th>Bonuses</th><th>Absences</th><th>Short Hours</th><th>Net Pay To Date</th><th>Action</th></tr></thead><tbody>{% for row in rows %}<tr class="analytics-search-row" data-search="{{ row.user.username }} {{ row.user.get_role_display }}"><td><strong>{{ row.user.username }}</strong></td><td>{{ row.user.get_role_display }}</td><td>${{ row.salary.salary_monthly }}</td><td>${{ row.salary.salary_deductions }}</td><td>${{ row.salary.holiday_overtime_addition }}</td><td>${{ row.salary.bonus_total }}</td><td>{{ row.salary.absence_days }}</td><td>{{ row.salary.short_hours }}</td><td><strong>${{ row.net_pay }}</strong></td><td><a href="{% url 'hr_add_bonus' %}?user={{ row.user.id }}&month={{ selected_month }}" class="table-action-btn"><i class="fas fa-plus"></i> Bonus</a></td></tr>{% empty %}<tr><td colspan="10" class="empty-cell">No payroll data.</td></tr>{% endfor %}</tbody></table><p class="empty-message filter-empty-message" id="analyticsSearchEmpty" hidden>No matching payroll data</p></div>
+    </section>
+</div>
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'hr_table_search.js' %}"></script>
+</body>
+</html>

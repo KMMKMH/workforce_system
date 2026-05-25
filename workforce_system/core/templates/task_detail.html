@@ -5,10 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ task.title }} - Task Details</title>
-    <link rel="stylesheet" href="{% static 'task_detail.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/task_detail_light.css' %}{% else %}{% static 'themes/dark/task_detail.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/task_detail.css' %}" data-light-theme="{% static 'themes/light/task_detail_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body data-can-manage="{{ can_manage|yesno:'true,false' }}" data-review-subject="{{ review_subject }}">
+<body data-can-manage="{{ can_manage|yesno:'true,false' }}" data-review-subject="{{ review_subject }}" data-image-role="{{ image_upload_role }}">
 {% include "components/confirm_modal.html" %}
 {% include "components/info_modal.html" %}
     <div class="task-detail-page">
@@ -19,7 +20,6 @@
         </div>
 
         <div class="task-layout">
-
             <section class="task-panel">
                 <div class="task-header">
                     <h1>{{ task.title }}</h1>
@@ -38,9 +38,9 @@
                             <button type="button" class="task-btn task-ready" data-id="{{ task.id }}" data-status="DONE">✅ Done</button>
                             <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Send Back</button>
                         {% elif task.status == "DONE" %}
-                            <span>Completed</span>
+                            <span>✅ Completed</span>
                         {% else %}
-                            <span>Waiting on {{ review_subject }}</span>
+                            <span>⏳ Waiting on {{ review_subject }}</span>
                         {% endif %}
                         <a href="{% url edit_task_url_name task.id %}" class="task-btn task-start">✏️ Edit Task</a>
                     {% elif task.status == "PENDING" %}
@@ -49,7 +49,7 @@
                         <button type="button" class="task-btn task-ready" data-id="{{ task.id }}" data-status="READY">✅ Mark as Ready</button>
                         <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="PENDING">↩ Cancel Progress</button>
                     {% elif task.status == "READY" %}
-                        <span>⏳ Waiting for review</span>
+                        <span>Waiting for review</span>
                         <button type="button" class="task-btn task-cancel" data-id="{{ task.id }}" data-status="IN_PROGRESS">↩ Cancel Review</button>
                     {% elif task.status == "REVIEW" %}
                         <span>📋 Under review by manager</span>
@@ -67,25 +67,67 @@
                 </div>
 
                 <div class="task-images-section">
-                    <h2><i class="fas fa-image"></i> Screenshots</h2>
-                    {% if images %}
-                        <div class="task-images-grid">
-                            {% for image in images %}
-                                <div class="task-image-card">
-                                    <img src="{{ image.image.url }}" alt="Task Screenshot">
-                                    {% if image.caption %}
-                                        <p class="image-caption">{{ image.caption }}</p>
+                    <div class="screenshots-header">
+                        <h2><i class="fas fa-image"></i> Screenshots</h2>
+                        {% if image_upload_role %}
+                            <form id="taskImageForm" class="image-upload-form {% if not can_upload_images %}hidden-upload{% endif %}" data-task-id="{{ task.id }}" data-target-role="{{ image_upload_role }}" enctype="multipart/form-data">
+                                <label for="taskImagesInput" class="task-btn task-start">
+                                    <i class="fas fa-upload"></i> Add Screenshots
+                                </label>
+                                <input id="taskImagesInput" type="file" name="images" accept="image/*" multiple>
+                            </form>
+                        {% endif %}
+                    </div>
+
+                    <div class="screenshot-group">
+                        <div class="screenshot-group-title">
+                            <h3><i class="fas fa-user-shield"></i> Assigner Screenshots</h3>
+                            <span>{{ task.assigned_by.username }}</span>
+                        </div>
+                        <div class="screenshot-carousel" id="assignerImageCarousel">
+                            {% for image in assigner_images %}
+                                <button type="button" class="task-image-card" data-full="{{ image.image.url }}" data-image-id="{{ image.id }}">
+                                    <img src="{{ image.image.url }}" alt="Assigner screenshot">
+                                    {% if image.uploaded_by == request.user %}
+                                        <span class="delete-image-btn" data-image-id="{{ image.id }}" title="Delete screenshot">
+                                            <i class="fas fa-times"></i>
+                                        </span>
                                     {% endif %}
                                     <span class="image-meta">
-                                        <i class="fas fa-user"></i> {{ image.uploaded_by.username }} • 
-                                        <i class="fas fa-calendar-alt"></i> {{ image.uploaded_at|date:"M d, Y - H:i" }}
+                                        <span class="image-user"><i class="fas fa-user"></i> {{ image.uploaded_by.username }}</span>
+                                        <span class="image-date"><i class="fas fa-calendar-alt"></i> {{ image.uploaded_at|date:"M d, Y - H:i" }}</span>
                                     </span>
-                                </div>
+                                </button>
+                            {% empty %}
+                                <p class="empty-text"><i class="fas fa-folder-open"></i> No assigner screenshots yet.</p>
                             {% endfor %}
                         </div>
-                    {% else %}
-                        <p class="empty-text"><i class="fas fa-folder-open"></i> No screenshots uploaded yet.</p>
-                    {% endif %}
+                    </div>
+
+                    <div class="screenshot-group">
+                        <div class="screenshot-group-title">
+                            <h3><i class="fas fa-user"></i> Assignee Screenshots</h3>
+                            <span>{{ task.assigned_to.username }}</span>
+                        </div>
+                        <div class="screenshot-carousel" id="assigneeImageCarousel">
+                            {% for image in assignee_images %}
+                                <button type="button" class="task-image-card" data-full="{{ image.image.url }}" data-image-id="{{ image.id }}">
+                                    <img src="{{ image.image.url }}" alt="Assignee screenshot">
+                                    {% if image.uploaded_by == request.user %}
+                                        <span class="delete-image-btn" data-image-id="{{ image.id }}" title="Delete screenshot">
+                                            <i class="fas fa-times"></i>
+                                        </span>
+                                    {% endif %}
+                                    <span class="image-meta">
+                                        <span class="image-user"><i class="fas fa-user"></i> {{ image.uploaded_by.username }}</span>
+                                        <span class="image-date"><i class="fas fa-calendar-alt"></i> {{ image.uploaded_at|date:"M d, Y - H:i" }}</span>
+                                    </span>
+                                </button>
+                            {% empty %}
+                                <p class="empty-text"><i class="fas fa-folder-open"></i> No assignee screenshots yet.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -119,8 +161,8 @@
                         <div class="commit-card" data-commit-id="{{ commit.id }}">
                             <div class="commit-top">
                                 <span class="commit-user"><i class="fas fa-user-circle"></i> {{ commit.user.username }}</span>
-                                <span class="commit-date"><i class="fas fa-clock"></i> 
-                                    {{ commit.updated_at|date:"M d, Y - H:i" }} 
+                                <span class="commit-date"><i class="fas fa-clock"></i>
+                                    {{ commit.updated_at|date:"M d, Y - H:i" }}
                                     {% if commit.is_edited %}
                                         <span class="edited-label">(edited)</span>
                                     {% endif %}
@@ -143,12 +185,19 @@
                     {% endfor %}
                 </div>
             </section>
-
         </div>
+    </div>
+
+    <div class="image-lightbox" id="imageLightbox" aria-hidden="true">
+        <button type="button" class="lightbox-close" id="lightboxClose">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="lightboxImage" src="" alt="Task screenshot preview">
     </div>
 
     <script src="{% static 'confirm_modal.js' %}"></script>
     <script src="{% static 'info_modal.js' %}"></script>
+    <script src="{% static 'theme_switcher.js' %}"></script>
     <script src="{% static 'task_detail.js' %}"></script>
 </body>
 </html>

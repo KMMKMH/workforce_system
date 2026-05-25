@@ -1,0 +1,157 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Managers Anomalies | Workforce System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/ceo_anomalies_light.css' %}{% else %}{% static 'themes/dark/ceo_anomalies.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/ceo_anomalies.css' %}" data-light-theme="{% static 'themes/light/ceo_anomalies_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body>
+<div class="ceo-anomalies-page">
+    <div class="back-nav">
+        <a href="{% url 'ceo_analytics' %}?month={{ selected_month }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Managers Analytics
+        </a>
+    </div>
+
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-triangle-exclamation"></i> Managers Anomalies</h1>
+            <p>Attendance issues grouped by manager for the selected month.</p>
+        </div>
+
+        <div class="header-actions">
+            <form method="GET" class="month-filter">
+                <label for="monthSelect">
+                    <i class="fas fa-calendar-alt"></i>
+                    Month
+                </label>
+                <select id="monthSelect" name="month" onchange="this.form.submit()">
+                    {% for month in months %}
+                        <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
+                            {{ month.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+            <div class="search-filter anomalies-search">
+                <label for="anomalySearchInput"><i class="fas fa-search"></i></label>
+                <input id="anomalySearchInput" type="search" placeholder="Search anomalies" autocomplete="off">
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-card danger">
+            <span>Total Anomalies</span>
+            <strong>{{ total_anomalies }}</strong>
+        </div>
+        <div class="summary-card">
+            <span>Affected Managers</span>
+            <strong>{{ affected_managers }}</strong>
+        </div>
+        <div class="summary-card success">
+            <span>Clear Managers</span>
+            <strong>{{ clear_managers }}</strong>
+        </div>
+        <div class="summary-card">
+            <span>Viewing</span>
+            <strong class="summary-month">{{ selected_month_label }}</strong>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <aside class="manager-summary-panel">
+            <h2><i class="fas fa-users"></i> Managers Summary</h2>
+
+            <div class="manager-summary-list">
+                {% for row in manager_summaries %}
+                    <div class="manager-summary-item {% if row.count %}has-issues{% endif %}" data-search="{{ row.manager.username }} {{ row.profile.position|default:'Manager' }}">
+                        <div>
+                            <strong>{{ row.manager.username }}</strong>
+                            <span>{{ row.profile.position|default:"Manager" }}</span>
+                        </div>
+                        <span class="count-pill">{{ row.count }}</span>
+                    </div>
+                {% empty %}
+                    <p class="empty-text">No managers found.</p>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <main class="grouped-anomalies">
+            {% for group in grouped_anomalies %}
+                <section class="manager-group anomaly-search-group" data-search="{{ group.manager.username }} {{ group.profile.position|default:'Manager' }} {{ group.profile.department|default:'' }} {% for anomaly in group.anomalies %} {{ anomaly.status }} {{ anomaly.anomaly_reason|default:'' }} {{ anomaly.date|date:'M d, Y' }}{% endfor %}">
+                    <div class="manager-group-header">
+                        <div>
+                            <h2><i class="fas fa-user-tie"></i> {{ group.manager.username }}</h2>
+                            <span>{{ group.profile.position|default:"Manager" }}{% if group.profile.department %} - {{ group.profile.department }}{% endif %}</span>
+                        </div>
+
+                        <div class="group-metrics">
+                            <div>
+                                <strong>{{ group.count }}</strong>
+                                <span>issues</span>
+                            </div>
+                            <div>
+                                <strong>{{ group.hours }}</strong>
+                                <span>hours</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="anomaly-card-list">
+                        {% for anomaly in group.anomalies %}
+                            <article class="anomaly-card">
+                                <div class="anomaly-card-top">
+                                    <div>
+                                        <h3><i class="fas fa-calendar-day"></i> {{ anomaly.date|date:"M d, Y" }}</h3>
+                                        <span class="status-pill status-{{ anomaly.status|lower }}">{{ anomaly.status }}</span>
+                                    </div>
+                                    <div class="hours-box">
+                                        <strong>{{ anomaly.worked_hours|floatformat:2|default:"-" }}</strong>
+                                        <span>hours</span>
+                                    </div>
+                                </div>
+
+                                <div class="time-grid">
+                                    <div>
+                                        <span>Check In</span>
+                                        <strong>{{ anomaly.check_in|date:"H:i"|default:"-" }}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Check Out</span>
+                                        <strong>{{ anomaly.check_out|date:"H:i"|default:"-" }}</strong>
+                                    </div>
+                                </div>
+
+                                <div class="reason-box">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>{{ anomaly.anomaly_reason|default:"No reason provided." }}</p>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h2>No managers anomalies found</h2>
+                    <p>The selected month has no flagged attendance issues for managers.</p>
+                </div>
+            {% endfor %}
+            <div class="empty-state" id="anomalySearchEmpty" hidden>
+                <i class="fas fa-search"></i>
+                <h2>No matching anomalies</h2>
+                <p>Try searching by manager, reason, or status.</p>
+            </div>
+        </main>
+    </div>
+</div>
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'anomaly_search.js' %}"></script>
+</body>
+</html>

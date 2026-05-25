@@ -8,8 +8,9 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-    <link rel="stylesheet" href="{% static 'analytics.css' %}">
-    <link rel="stylesheet" href="{% static 'anomalies.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/analytics_light.css' %}{% else %}{% static 'themes/dark/analytics.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/analytics.css' %}" data-light-theme="{% static 'themes/light/analytics_light.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/anomalies_light.css' %}{% else %}{% static 'themes/dark/anomalies.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/anomalies.css' %}" data-light-theme="{% static 'themes/light/anomalies_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
 </head>
 <body>
 
@@ -121,6 +122,7 @@
     </div>
 </div>
 
+<script src="{% static 'theme_switcher.js' %}"></script>
 <script src="{% static 'anomalies.js' %}"></script>
 </body>
 </html>

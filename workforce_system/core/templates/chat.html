@@ -1,0 +1,125 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/chat_light.css' %}{% else %}{% static 'themes/dark/chat.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/chat.css' %}" data-light-theme="{% static 'themes/light/chat_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body data-selected-conversation="{% if selected_conversation %}{{ selected_conversation.id }}{% endif %}">
+<div class="chat-page">
+    <div class="chat-topbar">
+        <a href="{% url 'dashboard' %}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+            <span class="theme-toggle-track">
+                <span class="theme-toggle-thumb"><i class="fas fa-moon"></i></span>
+            </span>
+            <span class="theme-toggle-text">Dark</span>
+        </button>
+    </div>
+
+    <main class="chat-shell">
+        <aside class="conversation-sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-comments"></i> Chat</h1>
+                <p>Team, direct, and company announcements.</p>
+            </div>
+
+            <div class="conversation-list">
+                {% for row in conversation_rows %}
+                    <a href="{% url 'chat' %}?conversation={{ row.conversation.id }}" class="conversation-item {% if row.is_selected %}active{% endif %}" data-conversation-id="{{ row.conversation.id }}">
+                        <span class="conversation-icon conversation-{{ row.conversation.conversation_type|lower }}">
+                            {% if row.conversation.conversation_type == "ANNOUNCEMENT" %}
+                                <i class="fas fa-bullhorn"></i>
+                            {% elif row.conversation.conversation_type == "TEAM" %}
+                                <i class="fas fa-users"></i>
+                            {% else %}
+                                <i class="fas fa-user"></i>
+                            {% endif %}
+                        </span>
+                        <span class="conversation-meta">
+                            <strong>{{ row.title }}</strong>
+                            <small>{{ row.subtitle }}</small>
+                            {% if row.last_message %}
+                                <span class="last-message">{{ row.last_message.sender.username }}: {{ row.last_message.body|truncatechars:42 }}</span>
+                            {% else %}
+                                <span class="last-message">No messages yet</span>
+                            {% endif %}
+                        </span>
+                    </a>
+                {% empty %}
+                    <p class="empty-list">No chats available.</p>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <section class="message-panel">
+            {% if selected_conversation %}
+                <div class="message-header">
+                    <div>
+                        <h2>{{ selected_title }}</h2>
+                        <p>{{ selected_subtitle }}</p>
+                    </div>
+                    {% if selected_conversation.conversation_type == "ANNOUNCEMENT" %}
+                        <span class="conversation-badge">Announcements</span>
+                    {% elif selected_conversation.conversation_type == "TEAM" %}
+                        <span class="conversation-badge">Team Chat</span>
+                    {% else %}
+                        <span class="conversation-badge">Direct</span>
+                    {% endif %}
+                </div>
+
+                <div class="messages" id="messages" data-messages-url="{% url 'chat_messages' selected_conversation.id %}">
+                    {% for message in messages %}
+                        <article class="message {% if message.sender_id == request.user.id %}own{% endif %}" data-message-id="{{ message.id }}">
+                            <div class="message-bubble">
+                                <div class="message-meta">
+                                    <strong>{{ message.sender.username }}</strong>
+                                    <span>{{ message.created_at|date:"M d, H:i" }}</span>
+                                </div>
+                                <p>{{ message.body }}</p>
+                            </div>
+                        </article>
+                    {% empty %}
+                        <p class="empty-chat" id="emptyChat">No messages yet.</p>
+                    {% endfor %}
+                </div>
+
+                {% if can_send %}
+                    <form class="message-form" id="messageForm" data-send-url="{% url 'chat_send_message' selected_conversation.id %}">
+                        {% csrf_token %}
+                        <textarea name="body" id="messageBody" rows="1" placeholder="Type a message..." required></textarea>
+                        <button type="submit" aria-label="Send message">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    <p class="chat-error" id="chatError" hidden></p>
+                {% else %}
+                    <div class="readonly-note">
+                        <i class="fas fa-eye"></i>
+                        {% if selected_conversation.conversation_type == "ANNOUNCEMENT" %}
+                            You can view this chat, but only CEO and HR can post announcements.
+                        {% else %}
+                            You can view this chat, but you cannot send messages here.
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <h2>No chat selected</h2>
+                    <p>Your available conversations will appear here.</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+</div>
+
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'chat.js' %}"></script>
+</body>
+</html>

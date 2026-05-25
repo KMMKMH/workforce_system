@@ -6,7 +6,8 @@
     <title>Team Anomalies | Workforce System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'manager_anomalies.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/manager_anomalies_light.css' %}{% else %}{% static 'themes/dark/manager_anomalies.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/manager_anomalies.css' %}" data-light-theme="{% static 'themes/light/manager_anomalies_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
 </head>
 <body>
 <div class="manager-anomalies-page">
@@ -22,19 +23,25 @@
             <p>Attendance issues grouped by employee for the selected month.</p>
         </div>
 
-        <form method="GET" class="month-filter">
-            <label for="monthSelect">
-                <i class="fas fa-calendar-alt"></i>
-                Month
-            </label>
-            <select id="monthSelect" name="month" onchange="this.form.submit()">
-                {% for month in months %}
-                    <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
-                        {{ month.label }}
-                    </option>
-                {% endfor %}
-            </select>
-        </form>
+        <div class="header-actions">
+            <form method="GET" class="month-filter">
+                <label for="monthSelect">
+                    <i class="fas fa-calendar-alt"></i>
+                    Month
+                </label>
+                <select id="monthSelect" name="month" onchange="this.form.submit()">
+                    {% for month in months %}
+                        <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
+                            {{ month.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+            <div class="search-filter anomalies-search">
+                <label for="anomalySearchInput"><i class="fas fa-search"></i></label>
+                <input id="anomalySearchInput" type="search" placeholder="Search anomalies" autocomplete="off">
+            </div>
+        </div>
     </div>
 
     <div class="summary-grid">
@@ -62,7 +69,7 @@
 
             <div class="employee-summary-list">
                 {% for row in employee_summaries %}
-                    <div class="employee-summary-item {% if row.count %}has-issues{% endif %}">
+                    <div class="employee-summary-item {% if row.count %}has-issues{% endif %}" data-search="{{ row.profile.user.username }} {{ row.profile.position|default:'Employee' }}">
                         <div>
                             <strong>{{ row.profile.user.username }}</strong>
                             <span>{{ row.profile.position|default:"Employee" }}</span>
@@ -77,7 +84,7 @@
 
         <main class="grouped-anomalies">
             {% for group in grouped_anomalies %}
-                <section class="employee-group">
+                <section class="employee-group anomaly-search-group" data-search="{{ group.profile.user.username }} {{ group.profile.position|default:'Employee' }} {{ group.profile.department|default:'' }} {% for anomaly in group.anomalies %} {{ anomaly.status }} {{ anomaly.anomaly_reason|default:'' }} {{ anomaly.date|date:'M d, Y' }}{% endfor %}">
                     <div class="employee-group-header">
                         <div>
                             <h2><i class="fas fa-user"></i> {{ group.profile.user.username }}</h2>
@@ -136,8 +143,15 @@
                     <p>The selected month has no flagged attendance issues for your team.</p>
                 </div>
             {% endfor %}
+            <div class="empty-state" id="anomalySearchEmpty" hidden>
+                <i class="fas fa-search"></i>
+                <h2>No matching anomalies</h2>
+                <p>Try searching by employee, reason, or status.</p>
+            </div>
         </main>
     </div>
 </div>
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'anomaly_search.js' %}"></script>
 </body>
 </html>

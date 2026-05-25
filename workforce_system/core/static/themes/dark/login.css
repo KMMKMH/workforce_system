@@ -57,6 +57,40 @@ body {
     box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.2);
 }
 
+.password-toggle-wrap {
+    position: relative;
+    margin: 8px 0;
+}
+
+.password-toggle-wrap input {
+    margin: 0;
+    padding-right: 46px;
+}
+
+.login-container .password-visibility-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    margin: 0;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: transparent;
+    color: #94A3B8;
+    box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-container .password-visibility-toggle:hover {
+    background: rgba(251, 113, 133, 0.12);
+    color: #FB7185;
+    transform: translateY(-50%);
+}
+
 .login-container button {
     width: 100%;
     padding: 12px;

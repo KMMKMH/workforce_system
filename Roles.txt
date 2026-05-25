@@ -1,0 +1,44 @@
+--CEO
+View the full organizational dashboard
+View employee analytics and performance summaries
+View task deadlines through the calendar
+Manage high-level accounts such as assigning HR and Accountant roles
+View employee records and uploaded CVs
+View invoices and payment-related records
+Approve bonuses or performance-based rewards
+--HR
+Create and manage employee accounts
+Enter employee information such as ID, full name, age, phone number, work email, password, and CV
+Manage attendance records and day-off logging
+View employee analytics and attendance statistics
+Monitor anomaly flags related to attendance behavior
+Manage payroll processing
+Access attendance summaries related to salary calculation
+View analytics relevant to payment and compensation
+Manage invoicing or payment documentation
+Record signed payment confirmations after printing and scanning them
+--Manager
+Monitor team task progress
+Monitor team attendance
+View task deadlines through the calendar
+View team statistics and performance summaries
+--Employee
+Log into the system
+Mark attendance using live face verification
+View and update assigned tasks
+View personal task deadlines through the calendar
+Access personal statistics only
+Communicate within allowed chat permissions
+
+
+Ofcourse, All these roles can chat. Chat goes like this:
+1) One on One:
+CEO can speak to HR and Accountant and Managers;
+Accountant can speak to CEO, HR and Managers;
+Employees can only speak to their team Managers and HR;
+Managers can speak to everybody;
+HR can speak to everybody;
+2) Team chat:
+Every team has a group chat.
+3) Announcements:
+CEO, HR and Accountant can post Announcements, where everybody else can just see.

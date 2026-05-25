@@ -120,13 +120,13 @@ function updateTaskUI(taskId, oldStatus, newStatus) {
     if (oldStatus !== "DONE" && newStatus === "DONE") {
         updateCount("openTasksCount", -1);
         updateCount("completedTasksCount", 1);
-        moveTaskToCompleted(card);
     } else if (oldStatus === "DONE" && newStatus !== "DONE") {
         updateCount("openTasksCount", 1);
         updateCount("completedTasksCount", -1);
     }
 
     attachTaskEvents();
+    applyTaskFilter();
 }
 
 function moveTaskToCompleted(card) {
@@ -244,9 +244,166 @@ function attachCompletedToggle() {
     };
 }
 
+function applyTaskFilter() {
+    const select = document.getElementById("taskStatusSelect");
+    if (!select) return;
+
+    const selectedStatus = select.value;
+    const searchInput = document.getElementById("taskSearchInput");
+    const query = (searchInput?.value || "").trim().toLowerCase();
+    document.body.dataset.taskStatusFilter = selectedStatus;
+    let visibleCount = 0;
+
+    document.querySelectorAll(".manager-task-card").forEach(card => {
+        const matchesStatus = selectedStatus === "ACTIVE"
+            ? card.dataset.status !== "DONE"
+            : card.dataset.status === selectedStatus;
+        const matchesSearch = !query || (card.dataset.search || card.textContent).toLowerCase().includes(query);
+        const shouldShow = matchesStatus && matchesSearch;
+        card.style.display = shouldShow ? "" : "none";
+        if (shouldShow) visibleCount += 1;
+    });
+
+    updateTaskFilterEmptyState(select, visibleCount, query);
+}
+
+function updateTaskFilterEmptyState(select, visibleCount, query = "") {
+    const emptyMessage = document.getElementById("taskFilterEmpty");
+    if (!emptyMessage) return;
+
+    if (visibleCount > 0) {
+        emptyMessage.hidden = true;
+        emptyMessage.textContent = "";
+        return;
+    }
+
+    const selectedOption = select.options[select.selectedIndex];
+    const label = selectedOption ? selectedOption.text.trim().toLowerCase() : "tasks";
+    const message = select.value === "ACTIVE" ? "No active tasks" : `No tasks ${label}`;
+    emptyMessage.innerHTML = `<i class="fas fa-inbox"></i> ${query ? `${message} matching "${query}"` : message}`;
+    emptyMessage.hidden = false;
+}
+
+function attachTaskFilter() {
+    const form = document.querySelector(".task-filter-toolbar");
+    const select = document.getElementById("taskStatusSelect");
+
+    if (!select) return;
+
+    if (form) {
+        form.onsubmit = function (e) {
+            e.preventDefault();
+        };
+    }
+
+    select.onchange = applyTaskFilter;
+    document.getElementById("taskSearchInput")?.addEventListener("input", applyTaskFilter);
+    applyTaskFilter();
+}
+
+function attachSimpleSearchFilters() {
+    document.querySelectorAll("[data-simple-search]").forEach(input => {
+        const targets = Array.from(document.querySelectorAll(input.dataset.searchTarget || ""));
+        const empty = document.getElementById(input.dataset.emptyTarget || "");
+
+        function applySearch() {
+            const query = input.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            targets.forEach(target => {
+                const matches = !query || (target.dataset.search || target.textContent).toLowerCase().includes(query);
+                target.style.display = matches ? "" : "none";
+                if (matches) visibleCount += 1;
+            });
+
+            if (empty) {
+                empty.hidden = visibleCount > 0;
+            }
+        }
+
+        input.addEventListener("input", applySearch);
+        applySearch();
+    });
+}
+
+function attachTaskMetricShortcuts() {
+    const select = document.getElementById("taskStatusSelect");
+    const taskSection = document.getElementById("dashboardTasks");
+
+    if (!select || !taskSection) return;
+
+    document.querySelectorAll("[data-task-shortcut]").forEach(shortcut => {
+        shortcut.onclick = function () {
+            const status = this.dataset.taskShortcut;
+
+            if (status && select.value !== status) {
+                select.value = status;
+                applyTaskFilter();
+            } else {
+                applyTaskFilter();
+            }
+
+            taskSection.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+        };
+    });
+}
+
+function attachInitialImagePicker() {
+    const input = document.querySelector(".initial-image-input");
+    const list = document.querySelector(".selected-image-list");
+    if (!input || !list) return;
+
+    let selectedFiles = [];
+
+    function syncInputFiles() {
+        const transfer = new DataTransfer();
+        selectedFiles.forEach(file => transfer.items.add(file));
+        input.files = transfer.files;
+    }
+
+    function renderList() {
+        if (!selectedFiles.length) {
+            list.textContent = list.dataset.emptyText || "No screenshots selected";
+            list.classList.remove("has-files");
+            return;
+        }
+
+        list.classList.add("has-files");
+        list.innerHTML = selectedFiles.map((file, index) => `
+            <span class="selected-image-chip">
+                ${file.name}
+                <button type="button" data-index="${index}" title="Remove screenshot">
+                    <i class="fas fa-times"></i>
+                </button>
+            </span>
+        `).join("");
+
+        list.querySelectorAll("button[data-index]").forEach(btn => {
+            btn.onclick = function () {
+                selectedFiles.splice(Number(this.dataset.index), 1);
+                syncInputFiles();
+                renderList();
+            };
+        });
+    }
+
+    input.onchange = function () {
+        selectedFiles = selectedFiles.concat(Array.from(input.files));
+        syncInputFiles();
+        renderList();
+    };
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     loadInfoModal();
     loadConfirmModal();
     attachTaskEvents();
     attachCompletedToggle();
+    attachTaskFilter();
+    attachTaskMetricShortcuts();
+    attachInitialImagePicker();
+    attachSimpleSearchFilters();
 });

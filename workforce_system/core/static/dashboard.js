@@ -86,6 +86,8 @@ function updateTask(taskId, newStatus, isManager) {
 
 function updateTaskUI(taskId, status, isManager) {
     const card = document.querySelector(`.task-card[data-id="${taskId}"]`);
+    if (!card) return;
+
     const actionsDiv = card.querySelector('.task-actions');
 
     let html = "";
@@ -134,8 +136,10 @@ function updateTaskUI(taskId, status, isManager) {
 
     const statusText = card.querySelector("p strong");
     statusText.textContent = status;
+    card.dataset.status = status;
 
     attachTaskEvents();
+    applyTaskFilter();
 }
 
 function getCSRFToken() {
@@ -158,8 +162,69 @@ function attachTaskEvents() {
     });
 }
 
+function applyTaskFilter() {
+    const select = document.getElementById("taskStatusSelect");
+    if (!select) return;
+
+    const selectedStatus = select.value;
+    const searchInput = document.getElementById("taskSearchInput");
+    const query = (searchInput?.value || "").trim().toLowerCase();
+    document.body.dataset.taskStatusFilter = selectedStatus;
+    let visibleCount = 0;
+
+    document.querySelectorAll(".task-card-link").forEach(link => {
+        const card = link.querySelector(".task-card");
+        if (!card) return;
+
+        const matchesStatus = selectedStatus === "ACTIVE"
+            ? card.dataset.status !== "DONE"
+            : card.dataset.status === selectedStatus;
+        const matchesSearch = !query || (card.dataset.search || card.textContent).toLowerCase().includes(query);
+        const shouldShow = matchesStatus && matchesSearch;
+        link.style.display = shouldShow ? "" : "none";
+        if (shouldShow) visibleCount += 1;
+    });
+
+    updateTaskFilterEmptyState(select, visibleCount, query);
+}
+
+function updateTaskFilterEmptyState(select, visibleCount, query = "") {
+    const emptyMessage = document.getElementById("taskFilterEmpty");
+    if (!emptyMessage) return;
+
+    if (visibleCount > 0) {
+        emptyMessage.hidden = true;
+        emptyMessage.textContent = "";
+        return;
+    }
+
+    const selectedOption = select.options[select.selectedIndex];
+    const label = selectedOption ? selectedOption.text.trim().toLowerCase() : "tasks";
+    const message = select.value === "ACTIVE" ? "No active tasks" : `No tasks ${label}`;
+    emptyMessage.innerHTML = `<i class="fas fa-inbox"></i> ${query ? `${message} matching "${query}"` : message}`;
+    emptyMessage.hidden = false;
+}
+
+function attachTaskFilter() {
+    const form = document.querySelector(".task-filter-toolbar");
+    const select = document.getElementById("taskStatusSelect");
+
+    if (!select) return;
+
+    if (form) {
+        form.onsubmit = function (e) {
+            e.preventDefault();
+        };
+    }
+
+    select.onchange = applyTaskFilter;
+    document.getElementById("taskSearchInput")?.addEventListener("input", applyTaskFilter);
+    applyTaskFilter();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     attachTaskEvents();
+    attachTaskFilter();
     loadInfoModal();
     loadConfirmModal();
 });

@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ mode }} | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_bonus_form_light.css' %}{% else %}{% static 'themes/dark/hr_bonus_form.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_bonus_form.css' %}" data-light-theme="{% static 'themes/light/hr_bonus_form_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body>
+<div class="bonus-page">
+    <div class="back-nav">
+        <a href="{% url 'hr_accountant' %}?month={{ selected_month }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Accountant
+        </a>
+    </div>
+
+    <section class="bonus-panel">
+        <div class="section-header">
+            <h2><i class="fas fa-circle-plus"></i> {{ mode }}</h2>
+            <p>Record a payroll bonus for the selected staff member and month.</p>
+        </div>
+
+        <form method="POST" class="bonus-form">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div class="field-block">
+                    <label for="{{ form.user.id_for_label }}">Staff Member</label>
+                    {{ form.user }}
+                    {% if form.user.errors %}<div class="field-error">{{ form.user.errors }}</div>{% endif %}
+                </div>
+                <div class="field-block">
+                    <label for="{{ form.amount.id_for_label }}">Bonus Amount</label>
+                    <div class="amount-field">
+                        <span>$</span>
+                        {{ form.amount }}
+                    </div>
+                    {% if form.amount.errors %}<div class="field-error">{{ form.amount.errors }}</div>{% endif %}
+                </div>
+                <div class="field-block">
+                    <label for="{{ form.month.id_for_label }}">Payroll Month</label>
+                    {{ form.month }}
+                    {% if form.month.errors %}<div class="field-error">{{ form.month.errors }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="field-block">
+                <label for="{{ form.reason.id_for_label }}">Reason</label>
+                {{ form.reason }}
+                {% if form.reason.errors %}<div class="field-error">{{ form.reason.errors }}</div>{% endif %}
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="form-actions">
+                <button type="submit" class="primary-btn">
+                    <i class="fas fa-save"></i> Save Bonus
+                </button>
+                <a href="{% url 'hr_accountant' %}?month={{ selected_month }}" class="secondary-btn">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </section>
+</div>
+<script src="{% static 'theme_switcher.js' %}"></script>
+</body>
+</html>

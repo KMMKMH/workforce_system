@@ -6,7 +6,8 @@
     <title>Analytics | Workforce System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'analytics.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/analytics_light.css' %}{% else %}{% static 'themes/dark/analytics.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/analytics.css' %}" data-light-theme="{% static 'themes/light/analytics_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
 </head>
 <body>
 
@@ -39,6 +40,41 @@
             Viewing: <strong id="selectedMonthLabel">{{ selected_month_label }}</strong>
         </div>
     </div>
+
+    <section class="salary-adjustment-card {{ salary_adjustment_class }}">
+        <div class="salary-main">
+            <div class="salary-icon">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <div>
+                <span class="salary-label">Salary adjustment to date</span>
+                <strong id="salaryAdjustmentTotal">{{ salary_adjustment_display }}</strong>
+                <span class="salary-caption" id="salaryAdjustmentLabel">{{ salary_adjustment_label }} this month</span>
+            </div>
+        </div>
+        <div class="salary-breakdown">
+            <div>
+                <span>Deductions</span>
+                <strong id="salaryDeductions">${{ salary_deductions }}</strong>
+            </div>
+            <div>
+                <span>Holiday overtime</span>
+                <strong id="salaryAdditions">${{ holiday_overtime_addition }}</strong>
+            </div>
+            <div>
+                <span>Bonuses</span>
+                <strong id="salaryBonuses">${{ bonus_total }}</strong>
+            </div>
+            <div>
+                <span>Absences</span>
+                <strong id="absenceDays">{{ absence_days }}</strong>
+            </div>
+            <div>
+                <span>Short hours</span>
+                <strong id="shortHours">{{ short_hours }}</strong>
+            </div>
+        </div>
+    </section>
 
     <div class="stats-grid">
         <div class="stat-card">
@@ -144,6 +180,7 @@
     </div>
 </div>
 
+<script src="{% static 'theme_switcher.js' %}"></script>
 <script src="{% static 'analytics.js' %}"></script>
 </body>
 </html>

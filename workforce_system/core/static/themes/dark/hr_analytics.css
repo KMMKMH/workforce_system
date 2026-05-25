@@ -1,0 +1,88 @@
+@import url("ceo_analytics.css");
+
+.search-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 9px 18px;
+    border-radius: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.search-filter label {
+    color: #818CF8;
+    display: inline-flex;
+}
+
+.search-filter input {
+    width: clamp(150px, 18vw, 230px);
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #FEFBF6;
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 2px 4px;
+}
+
+.search-filter input::placeholder {
+    color: #94A3B8;
+}
+
+.search-filter input::-webkit-search-cancel-button,
+.search-filter input::-webkit-search-decoration {
+    display: none;
+}
+
+.search-filter:focus-within {
+    border-color: rgba(251, 113, 133, 0.45);
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.14);
+}
+
+.analytics-managers-panel .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.filter-empty-message {
+    margin-top: 14px;
+    padding: 18px 20px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.22);
+    color: #94A3B8;
+    text-align: center;
+    font-weight: 600;
+}
+
+.filter-empty-message[hidden] {
+    display: none;
+}
+
+.table-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 113, 133, 0.35);
+    background: rgba(251, 113, 133, 0.12);
+    color: #FECDD3;
+    text-decoration: none;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.table-action-btn:hover {
+    background: #FB7185;
+    border-color: #FB7185;
+    color: #FFFFFF;
+    transform: translateY(-1px);
+}

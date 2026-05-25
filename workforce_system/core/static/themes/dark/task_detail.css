@@ -10,6 +10,7 @@ body {
     color: #F1F5F9;
     min-height: 100vh;
     padding: 24px;
+    overflow-x: hidden;
 }
 
 .task-detail-page {
@@ -33,6 +34,7 @@ body {
     padding: 24px;
     box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.4);
     transition: all 0.2s ease;
+    min-width: 0;
 }
 
 .task-panel:hover,
@@ -306,7 +308,6 @@ body {
     align-items: center;
     gap: 6px;
 }
-
 .delete-commit-btn:hover {
     background: #FB7185;
     color: white;
@@ -327,19 +328,16 @@ body {
     align-items: center;
     gap: 6px;
 }
-
 .edit-commit-btn:hover,
 .save-edit-commit-btn:hover {
     background: #818CF8;
     color: white;
 }
-
 .cancel-edit-commit-btn {
     border-color: rgba(251, 113, 133, 0.3);
     background: rgba(251, 113, 133, 0.1);
     color: #FB7185;
 }
-
 .cancel-edit-commit-btn:hover {
     background: #FB7185;
     color: white;
@@ -357,7 +355,6 @@ body {
     font-size: 14px;
     font-family: inherit;
 }
-
 .edit-commit-textarea:focus {
     outline: none;
     border-color: #818CF8;
@@ -394,7 +391,6 @@ body {
 .back-nav {
     margin-bottom: 24px;
 }
-
 .back-btn {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -409,16 +405,229 @@ body {
     gap: 8px;
     transition: all 0.2s ease;
 }
-
 .back-btn:hover {
     background: #4338CA;
     color: white;
     border-color: transparent;
     transform: translateX(-3px);
 }
-
 .back-btn i {
     font-size: 12px;
+}
+
+/* Screenshot groups (new dark styling) */
+.screenshots-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.screenshots-header h2 {
+    margin: 0;
+}
+.image-upload-form {
+    margin: 0;
+}
+.image-upload-form input[type="file"] {
+    display: none;
+}
+.image-upload-form.hidden-upload {
+    display: none;
+}
+.image-upload-form label {
+    margin: 0;
+}
+.screenshot-group {
+    min-width: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 16px;
+    margin-top: 16px;
+}
+.screenshot-group-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.screenshot-group-title h3 {
+    color: #FEFBF6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    min-width: 0;
+}
+.screenshot-group-title h3 i {
+    color: #FB7185;
+}
+.screenshot-group-title > span {
+    color: #94A3B8;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 40px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.screenshot-carousel {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding: 2px 2px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #475569 transparent;
+}
+.screenshot-carousel::-webkit-scrollbar {
+    height: 8px;
+}
+.screenshot-carousel::-webkit-scrollbar-track {
+    background: transparent;
+}
+.screenshot-carousel::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 20px;
+}
+.screenshot-carousel::-webkit-scrollbar-thumb:hover {
+    background: #64748B;
+}
+.screenshot-carousel .task-image-card {
+    position: relative;
+    flex: 0 0 220px;
+    width: 220px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 22px;
+    padding: 10px;
+    cursor: zoom-in;
+    text-align: left;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+.screenshot-carousel .task-image-card:hover {
+    border-color: #FB7185;
+    transform: translateY(-2px);
+    background: rgba(0, 0, 0, 0.4);
+}
+.screenshot-carousel .task-image-card img {
+    width: 100%;
+    height: 138px;
+    object-fit: cover;
+    border-radius: 16px;
+    display: block;
+    background: #0F172A;
+}
+.delete-image-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(251, 113, 133, 0.5);
+    color: #FB7185;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 2;
+}
+.delete-image-btn:hover {
+    background: #FB7185;
+    color: white;
+    border-color: #FB7185;
+    transform: scale(1.05);
+}
+.screenshot-carousel .image-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    color: #94A3B8;
+    font-size: 11px;
+    margin-top: 9px;
+    min-width: 0;
+}
+.image-user,
+.image-date {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.image-user {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.image-date {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+.screenshot-carousel .empty-text {
+    flex: 1 0 100%;
+    margin: 0;
+    background: transparent;
+}
+
+.image-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    z-index: 1000;
+}
+.image-lightbox.active,
+.image-lightbox.is-open {
+    display: flex;
+}
+.image-lightbox img {
+    max-width: min(1100px, 92vw);
+    max-height: 86vh;
+    object-fit: contain;
+    border-radius: 22px;
+    background: #0F172A;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.lightbox-close {
+    position: fixed;
+    top: 22px;
+    right: 22px;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    color: #0F172A;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.lightbox-close:hover {
+    background: #FB7185;
+    color: white;
+    transform: rotate(90deg);
 }
 
 @media (max-width: 900px) {
@@ -434,5 +643,18 @@ body {
     }
     .task-header h1 {
         font-size: 1.4rem;
+    }
+}
+@media (max-width: 560px) {
+    .screenshot-group-title {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .screenshot-group-title > span {
+        max-width: 100%;
+    }
+    .screenshot-carousel .task-image-card {
+        flex-basis: 190px;
+        width: 190px;
     }
 }

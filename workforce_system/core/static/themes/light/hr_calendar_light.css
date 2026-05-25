@@ -1,0 +1,14 @@
+@import url("ceo_calendar_light.css");
+
+.fc .fc-event.attendance-anomaly {
+    background: #A855F7 !important;
+    border: none !important;
+}
+
+.fc .fc-event.attendance-anomaly:hover {
+    background: #7E22CE !important;
+}
+
+.fc .fc-event.attendance-normal:hover {
+    filter: brightness(0.96);
+}

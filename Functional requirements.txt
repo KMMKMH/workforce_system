@@ -1,0 +1,53 @@
+--User and Role Management:
+FR-01: The system shall allow users to login using their email and passwords;
+FR-02: The system shall allow the CEO to create high level roles (HR and Accountant);
+FR-03: The system shall allow the HR to create accounts for Employees and Managers;
+FR-04: The system shall restrict access based on user role;
+FR-05: The system shall allow users to logout from the system;
+--Attendance Management (AI-Based):
+FR-06: The system shall allow users to log attendance using face verification on login and logout;
+FR-07: The system shall restrict the upload of images for verification;
+FR-08: The system shall secure verification using liveness check;
+FR-09: The system shall update user login and logout hour;
+FR-10: The system shall set user as "Online", "Late" or "Offline" based on attendance status;
+--Task Management
+FR-11: The system shall allow Managers to create, update, remove, assign and relocate tasks for Employees of their team;
+FR-12: The system shall allow Employees to update task status such as "Pending", "In Progress" or "Ready", where "Ready" means: ready for review;
+FR-13: The system shall allow Managers to update task status such as "Review" or "Done" based on task evaluation;
+--Payroll Management
+FR-14: The system shall calculate every Employee's salary based on hours worked, taking holidays and days off into consideration;
+FR-15: The system shall allow the Accountant to request bonuses, which will be sent to the CEO;
+FR-16: The system shall allow the CEO to accept bonuces and add the bonus to the salary calculation;
+FR-17: The system shall allow the Accountant to print salary invoices;
+FR-18: The system shall allow the Accountant to upload signed salary invoices (signed by Employees);
+FR-19: The system shall allow the CEO to review signed salary invoices;
+FR-20: The system shall display salary payments as "Done", "Due" or "Missed" to the Accountant based on the payments due dates;
+--Communication Module
+FR-21: The system shall allow the CEO to privately communicate with the HR, the Accountant or the Managers;
+FR-22: The system shall allow the Account to privately communicate with the CEO, the HR or the Managers;
+FR-23: The system shall allow Employees to privately communicate with the HR or their team Manager;
+FR-24: The system shall allow Managers to privately communicate with the CEO, the HR, the Accountant, other Managers and the Employees of their team;
+FR-25: The system shall allow the HR to privately communicate with anybody in the company;
+FR-26: The system shall allow Employees of a team to communicate with each others, including their Manager in a Team Chat;
+FR-27: The system shall allow the CEO, the HR and the Accountant to submit Announcements for everybody else to see;
+FR-28: The system shall allow text and images to be used during communication;
+--Analytics and Anomaly Detection
+FR-29: The system shall detect abnormaly long or short shifts;
+FR-30: The system shall detect late attendance;
+FR-31: The system shall calculate the Employee's task complition time over task estimated time and count his/her completed tasks;
+FR-32: The system shall count the Employee's late arrivales and abscences;
+FR-33: The system shall calculate the team's average task complition time over task estimated time and count their completed tasks;
+FR-34: The system shall calculate the team's average late arrivales and abscences;
+FR-35: The system shall calculate the company's average task complition time over task estimated time and count its completed tasks;
+FR-36: The system shall count the company's late arrivales and abscences;
+--Dashboard and Reporting
+FR-37: The system shall display the company's analytics to the CEO based on FR-35 and FR-36;
+FR-38: The system shall display the team's analytics to the CEO, HR and its team Manager based on FR-33 and FR-34;
+FR-39: The system shall display the Employee's analytics to the Employee, HR and his/her team Manager based on FR-31 and FR-32;
+FR-40: The system shall display each Employee's status such as "Online", "Late" or "Offline";
+FR-41: The system shall display tasks and their deadlines on the calendar;
+--Notifications
+FR-42: The system shall display chat notifications to users if not already in the chat;
+FR-43: The system shall display new task notifications to Employees when the Manager assigns a task;
+FR-44: The system shall display task done notifications to Managers when an Employee finishes a task;
+FR-45: The system shall display task reminders notifications for Employees on Login;

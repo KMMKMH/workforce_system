@@ -5,9 +5,17 @@
     <meta charset="UTF-8">
     <title>Manager Dashboard | Workforce System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'manager_dashboard.css' %}">
+    <link
+        id="themeStylesheet"
+        rel="stylesheet"
+        href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/manager_dashboard_light.css' %}{% else %}{% static 'themes/dark/manager_dashboard.css' %}{% endif %}"
+        data-theme-link
+        data-dark-theme="{% static 'themes/dark/manager_dashboard.css' %}"
+        data-light-theme="{% static 'themes/light/manager_dashboard_light.css' %}"
+    >
+    {% include "components/theme_bootstrap.html" %}
 </head>
-<body>
+<body data-task-status-filter="{{ selected_task_status }}">
 {% include "components/info_modal.html" %}
 {% include "components/confirm_modal.html" %}
 
@@ -21,14 +29,14 @@
             <p><i class="fas fa-circle-check"></i> Online</p>
             <strong class="status-active">{{ online_count }}</strong>
         </div>
-        <div class="card">
+        <button type="button" class="card metric-shortcut" data-task-shortcut="READY">
             <p><i class="fas fa-clipboard-check"></i> Tasks Ready For Review</p>
             <strong class="status-ready" id="readyTasksCount">{{ ready_tasks }}</strong>
-        </div>
-        <div class="card">
+        </button>
+        <button type="button" class="card metric-shortcut" data-task-shortcut="ACTIVE">
             <p><i class="fas fa-list-check"></i> Open Tasks</p>
             <strong id="openTasksCount">{{ open_tasks }}</strong>
-        </div>
+        </button>
         <div class="card">
             <p><i class="fas fa-triangle-exclamation"></i> Alerts</p>
             <strong class="{% if anomaly_count %}status-alert{% else %}status-active{% endif %}">{{ anomaly_count }}</strong>
@@ -45,7 +53,7 @@
                 <h2><i class="fas fa-plus"></i> Assign Task</h2>
             </div>
 
-            <form method="POST" class="task-form">
+            <form method="POST" class="task-form" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="form-grid">
                     <div>
@@ -73,6 +81,15 @@
                 <label for="{{ task_form.description.id_for_label }}">Description</label>
                 {{ task_form.description }}
 
+                <label>Initial Screenshots</label>
+                <div class="initial-image-picker">
+                    <label for="managerInitialScreenshots" class="image-picker-btn">
+                        <i class="fas fa-images"></i> Choose screenshots
+                    </label>
+                    <input id="managerInitialScreenshots" class="initial-image-input" type="file" name="initial_images" accept="image/*" multiple>
+                    <div class="selected-image-list" data-empty-text="No screenshots selected">No screenshots selected</div>
+                </div>
+
                 {% if task_form.errors %}
                     <div class="form-errors">{{ task_form.errors }}</div>
                 {% endif %}
@@ -87,6 +104,10 @@
             <section class="panel">
                 <div class="section-header">
                     <h2><i class="fas fa-user-clock"></i> Team Attendance</h2>
+                    <div class="search-filter">
+                        <label for="managerAttendanceSearch"><i class="fas fa-search"></i></label>
+                        <input id="managerAttendanceSearch" type="search" placeholder="Search attendance" autocomplete="off" data-simple-search data-search-target=".attendance-row" data-empty-target="attendanceSearchEmpty">
+                    </div>
                 </div>
 
                 <div class="table-wrap">
@@ -102,7 +123,7 @@
                         </thead>
                         <tbody>
                             {% for row in attendance_rows %}
-                                <tr>
+                                <tr class="attendance-row" data-search="{{ row.employee.username }} {{ row.position|default:'Team member' }} {{ row.status }} {{ row.alert|default:'' }}">
                                     <td class="t-employee">
                                         <strong>{{ row.employee.username }}</strong>
                                         <span>{{ row.position|default:"Team member" }}</span>
@@ -124,17 +145,22 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    <p class="empty-message filter-empty-message" id="attendanceSearchEmpty" hidden>No matching attendance records</p>
                 </div>
             </section>
 
             <section class="panel">
                 <div class="section-header">
                     <h2><i class="fas fa-users-gear"></i> Team Members</h2>
+                    <div class="search-filter">
+                        <label for="managerMembersSearch"><i class="fas fa-search"></i></label>
+                        <input id="managerMembersSearch" type="search" placeholder="Search members" autocomplete="off" data-simple-search data-search-target=".member-card" data-empty-target="membersSearchEmpty">
+                    </div>
                 </div>
 
                 <div class="member-list">
                     {% for row in member_rows %}
-                        <div class="member-card">
+                        <div class="member-card" data-search="{{ row.profile.user.username }} {{ row.profile.position|default:'Employee' }} {{ row.profile.department|default:'-' }} {{ row.status }}">
                             <div>
                                 <strong>{{ row.profile.user.username }}</strong>
                                 <span>{{ row.profile.position|default:"Employee" }}, {{ row.profile.department|default:"-" }}</span>
@@ -150,20 +176,37 @@
                     {% empty %}
                         <p class="empty-message">No employees are assigned to your team.</p>
                     {% endfor %}
+                    <p class="empty-message filter-empty-message" id="membersSearchEmpty" hidden>No matching team members</p>
                 </div>
             </section>
         </div>
 
-        <section class="panel task-panel">
+        <section class="panel task-panel" id="dashboardTasks">
             <div class="section-header">
                 <h2><i class="fas fa-list-check"></i> Team Tasks</h2>
-                <button type="button" class="toggle-completed-btn" id="toggleCompletedBtn">
-                    <i class="fas fa-eye"></i> Show Completed (<span id="completedTasksCount">{{ completed_tasks }}</span>)
-                </button>
+                <form class="task-filter-toolbar">
+                    <div class="search-filter">
+                        <label for="taskSearchInput"><i class="fas fa-search"></i></label>
+                        <input id="taskSearchInput" type="search" placeholder="Search tasks" autocomplete="off">
+                    </div>
+                    <div class="status-filter">
+                        <label for="taskStatusSelect">
+                            <i class="fas fa-filter"></i>
+                            Status
+                        </label>
+                        <select id="taskStatusSelect" name="status">
+                            {% for option in task_status_options %}
+                                <option value="{{ option.value }}" {% if option.selected %}selected{% endif %}>
+                                    {{ option.label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
             </div>
 
             {% for task in team_tasks %}
-                <div class="manager-task-card" data-id="{{ task.id }}" data-status="{{ task.status }}">
+                <div class="manager-task-card" data-id="{{ task.id }}" data-status="{{ task.status }}" data-search="{{ task.title }} {{ task.description }} {{ task.assigned_to.username }} {{ task.status }}">
                     <div class="task-main">
                         <a href="{% url 'task_detail' task.id %}?role=manager">
                             <h3>{{ task.title }}</h3>
@@ -199,50 +242,22 @@
                     </div>
                 </div>
             {% empty %}
-                <p class="empty-message">No tasks assigned to your team yet.</p>
             {% endfor %}
-
-            <div id="completedTasksBlock" class="completed-tasks hidden-completed">
-                <div class="completed-title">
-                    <i class="fas fa-check-circle"></i> Completed Tasks
-                </div>
-
-                {% for task in completed_team_tasks %}
-                    <div class="manager-task-card completed-task-card" data-id="{{ task.id }}" data-status="{{ task.status }}">
-                        <div class="task-main">
-                            <a href="{% url 'task_detail' task.id %}?role=manager">
-                                <h3>{{ task.title }}</h3>
-                            </a>
-                            <p>{{ task.description }}</p>
-                            <div class="task-meta">
-                                <span><i class="fas fa-user"></i> {{ task.assigned_to.username }}</span>
-                                <span><i class="fas fa-clock"></i> {{ task.completed_at|date:"M d, H:i"|default:"Completed" }}</span>
-                                <span>Status: <strong class="task-status-text">{{ task.status }}</strong></span>
-                            </div>
-                        </div>
-
-                        <div class="task-actions">
-                            <span>✅ Completed</span>
-                            <a href="{% url 'manager_edit_task' task.id %}" class="icon-link" title="Edit task">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button type="button" class="icon-link delete-task-btn" data-id="{{ task.id }}" title="Delete task">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                {% empty %}
-                    <p class="empty-message">No completed tasks yet.</p>
-                {% endfor %}
-            </div>
+            <p class="empty-message filter-empty-message" id="taskFilterEmpty" hidden>No active tasks</p>
         </section>
     </div>
 
     <div class="portal-bar">
-        <a href="#" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
+        <a href="{% url 'chat' %}" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
         <a href="{% url 'dashboard' %}" class="portal-btn"><i class="fas fa-user"></i> My Dashboard</a>
         <a href="{% url 'manager_analytics' %}" class="portal-btn"><i class="fas fa-chart-line"></i> Team Analytics</a>
         <a href="{% url 'manager_calendar' %}" class="portal-btn"><i class="fas fa-calendar"></i> Team Calendar</a>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+            <span class="theme-toggle-track">
+                <span class="theme-toggle-thumb"><i class="fas fa-moon"></i></span>
+            </span>
+            <span class="theme-toggle-text">Dark</span>
+        </button>
         <button class="logout-btn" onclick="clockOut()"><i class="fas fa-sign-out-alt"></i> Clock out</button>
     </div>
 
@@ -253,6 +268,7 @@
 
 <script src="{% static 'info_modal.js' %}"></script>
 <script src="{% static 'confirm_modal.js' %}"></script>
+<script src="{% static 'theme_switcher.js' %}"></script>
 <script src="{% static 'manager_dashboard.js' %}"></script>
 </body>
 </html>

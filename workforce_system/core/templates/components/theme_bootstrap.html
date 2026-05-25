@@ -1,0 +1,22 @@
+<script>
+(function () {
+    try {
+        var cookieMatch = document.cookie.match(/(?:^|;\s*)workforceTheme=(light|dark)/);
+        var savedTheme = localStorage.getItem("workforceTheme");
+        var theme = cookieMatch ? cookieMatch[1] : (savedTheme === "light" ? "light" : "dark");
+
+        document.documentElement.dataset.theme = theme;
+        localStorage.setItem("workforceTheme", theme);
+
+        if (theme !== "light") return;
+
+        document.querySelectorAll("[data-theme-link]").forEach(function (link) {
+            if (link.dataset.lightTheme) {
+                link.setAttribute("href", link.dataset.lightTheme);
+            }
+        });
+    } catch (error) {
+        document.documentElement.dataset.theme = "dark";
+    }
+})();
+</script>

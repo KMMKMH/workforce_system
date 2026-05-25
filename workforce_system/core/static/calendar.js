@@ -8,13 +8,19 @@ document.addEventListener('DOMContentLoaded', function () {
         events: calendarEvents,
         weekends: true,
 
-        dayCellClassNames: function(arg) {
-        const day = arg.date.getDay();
+        dayCellClassNames: function (arg) {
+            const day = arg.date.getDay();
 
-        if (day === 0 || day === 6) {
-            return ['weekend-cell'];
+            if (day === 0 || day === 6) {
+                return ['weekend-cell'];
+            }
+
+            return [];
+        },
+        eventDidMount: function (info) {
+            info.el.setAttribute('title', info.event.title);
+            info.el.setAttribute('aria-label', info.event.title);
         }
-    }
     });
 
     calendar.render();

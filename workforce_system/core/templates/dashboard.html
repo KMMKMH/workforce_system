@@ -5,9 +5,17 @@
     <meta charset="UTF-8">
     <title>Dashboard | Workforce System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'dashboard.css' %}">
+    <link
+        id="themeStylesheet"
+        rel="stylesheet"
+        href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/dashboard_light.css' %}{% else %}{% static 'themes/dark/dashboard.css' %}{% endif %}"
+        data-theme-link
+        data-dark-theme="{% static 'themes/dark/dashboard.css' %}"
+        data-light-theme="{% static 'themes/light/dashboard_light.css' %}"
+    >
+    {% include "components/theme_bootstrap.html" %}
 </head>
-<body>
+<body data-task-status-filter="{{ selected_task_status }}">
 {% include "components/info_modal.html" %}
 {% include "components/confirm_modal.html" %}
 
@@ -26,7 +34,7 @@
         <div class="card">
             <p><i class="fas fa-triangle-exclamation"></i> Alerts</p>
             <strong>
-                {% if alert %}<i class="fas fa-exclamation-triangle" style="color: #FB7185;"></i>{% else %}<i class="fas fa-check-circle" style="color: #34D399;"></i>{% endif %}
+                {% if alert %}<i class="fas fa-exclamation-triangle"></i>{% else %}<i class="fas fa-check-circle" style="color: #10B981;"></i>{% endif %}
             </strong>
         </div>
 
@@ -38,11 +46,32 @@
 
     <div class="main-area">
 
-        <h2><i class="fas fa-list-check"></i> My Tasks</h2>
+        <div class="tasks-header">
+            <h2><i class="fas fa-list-check"></i> My Tasks</h2>
+            <form class="task-filter-toolbar">
+                <div class="search-filter">
+                    <label for="taskSearchInput"><i class="fas fa-search"></i></label>
+                    <input id="taskSearchInput" type="search" placeholder="Search tasks" autocomplete="off">
+                </div>
+                <div class="status-filter">
+                    <label for="taskStatusSelect">
+                        <i class="fas fa-filter"></i>
+                        Status
+                    </label>
+                    <select id="taskStatusSelect" name="status">
+                        {% for option in task_status_options %}
+                            <option value="{{ option.value }}" {% if option.selected %}selected{% endif %}>
+                                {{ option.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
 
         {% for task in tasks %}
             <a href="{% url 'task_detail' task.id %}" class="task-card-link">
-                <div class="task-card" data-id="{{ task.id }}">
+                <div class="task-card" data-id="{{ task.id }}" data-status="{{ task.status }}" data-search="{{ task.title }} {{ task.description }} {{ task.assigned_by.username }} {{ task.status }}">
                     <h3>{{ task.title }}</h3>
                     <p>{{ task.description }}</p>
 
@@ -69,19 +98,25 @@
                 </div>
             </a>
         {% empty %}
-            <p class="empty-message"><i class="fas fa-inbox"></i> No tasks assigned</p>
         {% endfor %}
+        <p class="empty-message filter-empty-message" id="taskFilterEmpty" hidden><i class="fas fa-inbox"></i> No active tasks</p>
 
     </div>
 
     <div class="portal-bar">
-        <a href="#" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
+        <a href="{% url 'chat' %}" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
         {% if show_manager_portal %}
             <a href="{% url 'manager_dashboard' %}" class="portal-btn"><i class="fas fa-users-gear"></i> Team Dashboard</a>
         {% endif %}
         <a href="{% url 'profile' %}" class="portal-btn"><i class="fas fa-user"></i> Profile</a>
         <a href="{% url 'employee_analytics' %}" class="portal-btn"><i class="fas fa-chart-line"></i> Analytics</a>
         <a href="{% url 'calendar' %}" class="portal-btn"><i class="fas fa-calendar"></i> Calendar</a>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+            <span class="theme-toggle-track">
+                <span class="theme-toggle-thumb"><i class="fas fa-moon"></i></span>
+            </span>
+            <span class="theme-toggle-text">Dark</span>
+        </button>
         <button class="logout-btn" onclick="clockOut()"><i class="fas fa-sign-out-alt"></i> Clock out</button>
     </div>
 
@@ -93,6 +128,7 @@
 
 <script src="{% static 'info_modal.js' %}"></script>
 <script src="{% static 'confirm_modal.js' %}"></script>
+<script src="{% static 'theme_switcher.js' %}"></script>
 <script src="{% static 'dashboard.js' %}"></script>
 
 </body>

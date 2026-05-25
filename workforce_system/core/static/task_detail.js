@@ -7,6 +7,196 @@ function getCSRFToken() {
         ?.split("=")[1];
 }
 
+function canUploadImagesForStatus(status) {
+    const role = document.body.dataset.imageRole;
+
+    if (role === "assigner") {
+        return status === "PENDING" || status === "REVIEW";
+    }
+
+    if (role === "assignee") {
+        return status === "IN_PROGRESS";
+    }
+
+    return false;
+}
+
+function updateImageUploadVisibility(status) {
+    const form = document.getElementById("taskImageForm");
+    if (!form) return;
+
+    form.classList.toggle("hidden-upload", !canUploadImagesForStatus(status));
+}
+
+function imageCardHTML(image) {
+    return `
+        <button type="button" class="task-image-card" data-full="${image.url}" data-image-id="${image.id}">
+            <img src="${image.url}" alt="Task screenshot">
+            <span class="delete-image-btn" data-image-id="${image.id}" title="Delete screenshot">
+                <i class="fas fa-times"></i>
+            </span>
+            <span class="image-meta">
+                <span class="image-user"><i class="fas fa-user"></i> ${image.uploaded_by}</span>
+                <span class="image-date"><i class="fas fa-calendar-alt"></i> ${image.uploaded_at}</span>
+            </span>
+        </button>
+    `;
+}
+
+function emptyTextForCarousel(carousel) {
+    if (carousel?.id === "assignerImageCarousel") {
+        return '<p class="empty-text"><i class="fas fa-folder-open"></i> No assigner screenshots yet.</p>';
+    }
+
+    return '<p class="empty-text"><i class="fas fa-folder-open"></i> No assignee screenshots yet.</p>';
+}
+
+function attachImagePreviewEvents() {
+    const lightbox = document.getElementById("imageLightbox");
+    const lightboxImage = document.getElementById("lightboxImage");
+    const closeButton = document.getElementById("lightboxClose");
+
+    document.querySelectorAll(".task-image-card[data-full]").forEach(card => {
+        card.onclick = function () {
+            if (!lightbox || !lightboxImage) return;
+
+            lightboxImage.src = this.dataset.full;
+            lightbox.classList.add("is-open");
+            lightbox.setAttribute("aria-hidden", "false");
+        };
+    });
+
+    document.querySelectorAll(".delete-image-btn").forEach(btn => {
+        btn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const imageId = this.dataset.imageId;
+
+            showConfirm(
+                "Are you sure you want to delete this screenshot?",
+                () => deleteTaskImage(imageId),
+                {
+                    title: "Delete Screenshot",
+                    status: "danger",
+                    confirmText: "Delete"
+                }
+            );
+        };
+    });
+
+    if (closeButton) {
+        closeButton.onclick = closeImageLightbox;
+    }
+
+    if (lightbox) {
+        lightbox.onclick = function (e) {
+            if (e.target === lightbox) closeImageLightbox();
+        };
+    }
+}
+
+function deleteTaskImage(imageId) {
+    fetch(`/tasks/images/${imageId}/delete/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCSRFToken()
+        }
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const card = document.querySelector(`.task-image-card[data-image-id="${imageId}"]`);
+                if (card) {
+                    const carousel = card.closest(".screenshot-carousel");
+                    card.remove();
+
+                    if (carousel && !carousel.querySelector(".task-image-card")) {
+                        carousel.innerHTML = emptyTextForCarousel(carousel);
+                    }
+                }
+            } else {
+                showInfo(data.error || "Could not delete screenshot.", {
+                    title: "Delete Screenshot",
+                    status: "danger"
+                });
+            }
+        })
+        .catch(() => {
+            showInfo("Failed to delete screenshot.", {
+                title: "Delete Screenshot",
+                status: "danger"
+            });
+        });
+}
+
+function closeImageLightbox() {
+    const lightbox = document.getElementById("imageLightbox");
+    const lightboxImage = document.getElementById("lightboxImage");
+
+    if (!lightbox || !lightboxImage) return;
+
+    lightbox.classList.remove("is-open");
+    lightbox.setAttribute("aria-hidden", "true");
+    lightboxImage.src = "";
+}
+
+function attachImageUploadForm() {
+    const form = document.getElementById("taskImageForm");
+    const input = document.getElementById("taskImagesInput");
+
+    if (!form || !input) return;
+
+    input.onchange = function () {
+        if (!input.files.length) return;
+
+        const formData = new FormData();
+        Array.from(input.files).forEach(file => {
+            formData.append("images", file);
+        });
+
+        fetch(`/tasks/${form.dataset.taskId}/images/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCSRFToken()
+            },
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    showInfo(data.error || "Could not upload screenshots.", {
+                        title: "Upload Screenshots",
+                        status: "danger"
+                    });
+                    return;
+                }
+
+                const targetId = form.dataset.targetRole === "assigner"
+                    ? "assignerImageCarousel"
+                    : "assigneeImageCarousel";
+                const carousel = document.getElementById(targetId);
+
+                if (carousel) {
+                    const emptyText = carousel.querySelector(".empty-text");
+                    if (emptyText) emptyText.remove();
+
+                    data.images.forEach(image => {
+                        carousel.insertAdjacentHTML("afterbegin", imageCardHTML(image));
+                    });
+                    attachImagePreviewEvents();
+                }
+
+                input.value = "";
+            })
+            .catch(() => {
+                showInfo("Failed to upload screenshots.", {
+                    title: "Upload Screenshots",
+                    status: "danger"
+                });
+            });
+    };
+}
+
 function attachTaskEvents() {
     document.querySelectorAll('.task-btn[data-id][data-status]').forEach(btn => {
         btn.onclick = function (e) {
@@ -342,24 +532,24 @@ function updateTask(taskId, newStatus) {
 function buildManagerTaskActions(taskId, status) {
     if (status === "READY") {
         return `
-            <button type="button" class="task-btn task-review" data-id="${taskId}" data-status="REVIEW">Review</button>
-            <button type="button" class="task-btn task-ready" data-id="${taskId}" data-status="DONE">Done</button>
-            <button type="button" class="task-btn task-cancel" data-id="${taskId}" data-status="IN_PROGRESS">Send Back</button>
+            <button type="button" class="task-btn task-review" data-id="${taskId}" data-status="REVIEW">📋 Review</button>
+            <button type="button" class="task-btn task-ready" data-id="${taskId}" data-status="DONE">✅ Done</button>
+            <button type="button" class="task-btn task-cancel" data-id="${taskId}" data-status="IN_PROGRESS">↩ Send Back</button>
         `;
     }
 
     if (status === "REVIEW") {
         return `
-            <button type="button" class="task-btn task-ready" data-id="${taskId}" data-status="DONE">Done</button>
-            <button type="button" class="task-btn task-cancel" data-id="${taskId}" data-status="IN_PROGRESS">Send Back</button>
+            <button type="button" class="task-btn task-ready" data-id="${taskId}" data-status="DONE">✅ Done</button>
+            <button type="button" class="task-btn task-cancel" data-id="${taskId}" data-status="IN_PROGRESS">↩ Send Back</button>
         `;
     }
 
     if (status === "DONE") {
-        return `<span>Completed</span>`;
+        return `<span>✅ Completed</span>`;
     }
 
-    return `<span>Waiting on ${document.body.dataset.reviewSubject || "employee"}</span>`;
+    return `<span>⏳ Waiting on ${document.body.dataset.reviewSubject || "employee"}</span>`;
 }
 
 function updateManagerTaskUI(taskId, status) {
@@ -371,6 +561,7 @@ function updateManagerTaskUI(taskId, status) {
         statusText.className = `task-status status-${status.toLowerCase()}`;
         statusText.textContent = status;
     }
+    updateImageUploadVisibility(status);
 
     if (actionsDiv) {
         actionsDiv.innerHTML = buildManagerTaskActions(taskId, status);
@@ -447,6 +638,7 @@ function updateTaskUI(taskId, status) {
     actionsDiv.innerHTML = html;
     statusText.className = `task-status status-${status.toLowerCase()}`
     statusText.textContent = status;
+    updateImageUploadVisibility(status);
     commitDiv.innerHTML = commit;
     commitActionsDiv.forEach((actionsEl) => {
         const card = actionsEl.closest(".commit-card");
@@ -478,6 +670,9 @@ document.addEventListener('DOMContentLoaded', function () {
     attachEditEvents();
     attachCommitForm();
     attachTaskEvents();
+    attachImageUploadForm();
+    attachImagePreviewEvents();
+    updateImageUploadVisibility(document.querySelector(".task-status")?.textContent.trim());
     loadConfirmModal();
     loadInfoModal();
 });

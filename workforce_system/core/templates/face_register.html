@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Face Registration</title>
-    <link rel="stylesheet" href="{% static 'face.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/face_light.css' %}{% else %}{% static 'themes/dark/face.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/face.css' %}" data-light-theme="{% static 'themes/light/face_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
 </head>
 <body>
 
@@ -21,6 +22,7 @@
     <p id="status" class="status"></p>
 </div>
 
+<script src="{% static 'theme_switcher.js' %}"></script>
 <script src="{% static 'face_register.js' %}"></script>
 
 </body>

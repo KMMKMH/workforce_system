@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HR Analytics | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_analytics_light.css' %}{% else %}{% static 'themes/dark/hr_analytics.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_analytics.css' %}" data-light-theme="{% static 'themes/light/hr_analytics_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body class="analytics-body">
+<div class="analytics-page">
+    <div class="back-nav"><a href="{% url 'hr_dashboard' %}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a></div>
+    <h1><i class="fas fa-chart-line"></i> Company Staff Analytics</h1>
+    <form method="GET" class="analytics-toolbar">
+        <div class="month-filter"><label for="monthSelect"><i class="fas fa-calendar-alt"></i> Month</label><select id="monthSelect" name="month" onchange="this.form.submit()">{% for month in months %}<option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>{{ month.label }}</option>{% endfor %}</select></div>
+        <div class="selected-month-pill">Viewing: <strong>{{ selected_month_label }}</strong></div>
+    </form>
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><span class="stat-value">{{ staff_count }}</span><span class="stat-label">Staff</span></div></div>
+        <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><span class="stat-value">{{ total_hours }}</span><span class="stat-label">Hours</span></div></div>
+        <div class="stat-card"><div class="stat-icon"><i class="fas fa-business-time"></i></div><div class="stat-info"><span class="stat-value">{{ avg_hours }}</span><span class="stat-label">Avg Hours / Day</span></div></div>
+        <div class="stat-card"><div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div><div class="stat-info"><span class="stat-value">{{ anomalies }}</span><span class="stat-label">Anomalies</span></div></div>
+    </div>
+    <div class="analytics-grid">
+        <div class="card"><h2><i class="fas fa-tasks"></i> Task Progress</h2><div class="manager-metric-list"><div><span>Completed</span><strong>{{ completed }} / {{ total_tasks }}</strong></div><div><span>Completion rate</span><strong>{{ completion_rate }}%</strong></div></div></div>
+        <div class="card"><h2><i class="fas fa-user-clock"></i> Attendance</h2><div class="manager-metric-list"><div><span>Absences</span><strong>{{ absences }}</strong></div><div><span>Anomalies</span><strong>{{ anomalies }}</strong></div></div></div>
+    </div>
+    <section class="panel analytics-managers-panel">
+        <div class="section-header">
+            <h2><i class="fas fa-table"></i> Staff Breakdown</h2>
+            <div class="search-filter">
+                <label for="analyticsSearchInput"><i class="fas fa-search"></i></label>
+                <input id="analyticsSearchInput" type="search" placeholder="Search staff" autocomplete="off" data-search-target=".analytics-search-row" data-empty-target="analyticsSearchEmpty">
+            </div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Hours</th><th>Completed</th><th>Total Tasks</th><th>Absences</th><th>Anomalies</th></tr></thead><tbody>{% for row in rows %}<tr class="analytics-search-row" data-search="{{ row.user.username }} {{ row.user.get_role_display }}"><td><strong>{{ row.user.username }}</strong></td><td>{{ row.user.get_role_display }}</td><td>{{ row.hours }}</td><td>{{ row.completed }}</td><td>{{ row.total_tasks }}</td><td>{{ row.absences }}</td><td>{{ row.anomalies }}</td></tr>{% empty %}<tr><td colspan="7" class="empty-cell">No staff data for this month.</td></tr>{% endfor %}</tbody></table><p class="empty-message filter-empty-message" id="analyticsSearchEmpty" hidden>No matching staff data</p></div>
+    </section>
+</div>
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'hr_table_search.js' %}"></script>
+</body>
+</html>

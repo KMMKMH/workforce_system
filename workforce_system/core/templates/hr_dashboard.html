@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HR Dashboard | Workforce System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_dashboard_light.css' %}{% else %}{% static 'themes/dark/hr_dashboard.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_dashboard.css' %}" data-light-theme="{% static 'themes/light/hr_dashboard_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body>
+<div class="ceo-dashboard">
+    <div class="top-band">
+        <div class="card"><p><i class="fas fa-users"></i> Staff</p><strong>{{ staff_count }}</strong></div>
+        <div class="card"><p><i class="fas fa-user-tie"></i> Managers</p><strong>{{ manager_count }}</strong></div>
+        <div class="card"><p><i class="fas fa-user"></i> Employees</p><strong>{{ employee_count }}</strong></div>
+        <div class="card"><p><i class="fas fa-circle-check"></i> Online</p><strong class="status-active">{{ online_count }}</strong></div>
+        <div class="card"><p><i class="fas fa-triangle-exclamation"></i> Alerts</p><strong class="{% if anomaly_count %}status-alert{% else %}status-active{% endif %}">{{ anomaly_count }}</strong></div>
+        <div class="live-clock"><i class="fas fa-clock"></i><span id="clock">--:--:--</span></div>
+    </div>
+
+    <div class="main-area">
+        <section class="panel">
+            <div class="section-header">
+                <h2><i class="fas fa-user-clock"></i> Company Attendance Today</h2>
+                <form class="task-filter-toolbar">
+                    <div class="search-filter">
+                        <label for="attendanceSearchInput"><i class="fas fa-search"></i></label>
+                        <input id="attendanceSearchInput" type="search" placeholder="Search attendance" autocomplete="off">
+                    </div>
+                    <div class="status-filter">
+                        <label for="attendanceStatusFilter">
+                            <i class="fas fa-filter"></i>
+                            Status
+                        </label>
+                        <select id="attendanceStatusFilter" name="attendance_status">
+                            <option value="ALL">All attendance</option>
+                            <option value="ONLINE">Online</option>
+                            <option value="OFFLINE">Offline</option>
+                            <option value="PRESENT">Present</option>
+                            <option value="LOW_HOURS">Short hours</option>
+                            <option value="WORKING_HOLIDAY">Holiday overtime</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="t-employee">User</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Hours</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in attendance_rows %}
+                            <tr class="attendance-row" data-attendance-status="{{ row.status_code }}" data-is-online="{% if row.is_online %}true{% else %}false{% endif %}" data-has-alert="{% if row.alert %}true{% else %}false{% endif %}" data-search="{{ row.user.username }} {{ row.user.get_role_display }} {{ row.user.profile.position|default:'Staff member' }} {{ row.status }}">
+                                <td class="t-employee">
+                                    <strong>{{ row.user.username }}</strong>
+                                    <span>{{ row.user.profile.position|default:"Staff member" }}</span>
+                                </td>
+                                <td>{{ row.user.get_role_display }}</td>
+                                <td>
+                                    <span class="status-pill status-{{ row.status_class }}">{{ row.status }}</span>
+                                    {% if row.alert %}<small class="alert-text">{{ row.alert }}</small>{% endif %}
+                                </td>
+                                <td>{{ row.check_in|date:"H:i"|default:"-" }}</td>
+                                <td>{{ row.check_out|date:"H:i"|default:"-" }}</td>
+                                <td>{{ row.worked_hours|floatformat:2|default:"-" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="6" class="empty-cell">No staff accounts yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p class="empty-message filter-empty-message" id="attendanceFilterEmpty" hidden>No attendance records</p>
+            </div>
+        </section>
+    </div>
+
+    <div class="portal-bar">
+        <a href="{% url 'chat' %}" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
+        <a href="{% url 'profile' %}" class="portal-btn"><i class="fas fa-user"></i> Profile</a>
+        <a href="{% url 'hr_staff_management' %}" class="portal-btn"><i class="fas fa-users-gear"></i> Staff</a>
+        <a href="{% url 'hr_analytics' %}" class="portal-btn"><i class="fas fa-chart-line"></i> Analytics</a>
+        <a href="{% url 'hr_accountant' %}" class="portal-btn"><i class="fas fa-file-invoice-dollar"></i> Accountant</a>
+        <a href="{% url 'hr_attendance_calendar' %}" class="portal-btn"><i class="fas fa-calendar"></i> Attendance Calendar</a>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+            <span class="theme-toggle-track"><span class="theme-toggle-thumb"><i class="fas fa-moon"></i></span></span>
+            <span class="theme-toggle-text">Dark</span>
+        </button>
+        <button class="logout-btn" onclick="logOut()"><i class="fas fa-sign-out-alt"></i> Log out</button>
+    </div>
+    <div class="footer"><i class="fas fa-building"></i> Coftech Workforce System 2026</div>
+</div>
+
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'hr_dashboard.js' %}"></script>
+</body>
+</html>

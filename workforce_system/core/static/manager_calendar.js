@@ -13,6 +13,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (day === 0 || day === 6) {
                 return ["weekend-cell"];
             }
+
+            return [];
+        },
+        eventDidMount: function (info) {
+            info.el.setAttribute("title", info.event.title);
+            info.el.setAttribute("aria-label", info.event.title);
         }
     });
 

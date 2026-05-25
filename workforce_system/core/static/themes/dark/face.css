@@ -52,8 +52,22 @@ button:hover {
     transform: scale(1.02);
 }
 
+button:disabled,
+button:disabled:hover {
+    background: rgba(148, 163, 184, 0.28);
+    color: #94A3B8;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    opacity: 0.75;
+}
+
 button:active {
     transform: scale(0.98);
+}
+
+button:disabled:active {
+    transform: none;
 }
 
 .status {

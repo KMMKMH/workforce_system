@@ -1,0 +1,11 @@
+@import url("ceo_staff_management_light.css");
+
+.staff-form select {
+    width: 100%;
+    border: 1px solid #CBD5E1;
+    border-radius: 16px;
+    background: #FFFFFF;
+    color: #0F172A;
+    padding: 11px 12px;
+    font: inherit;
+}
