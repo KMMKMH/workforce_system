@@ -35,7 +35,7 @@ body {
 }
 
 .back-btn:hover {
-    background: #6366F1;
+    background: #4338CA;
     color: #FFFFFF;
     transform: translateX(-3px);
 }
@@ -94,7 +94,7 @@ h1 {
 .success-banner {
     background: rgba(16, 185, 129, 0.14);
     border: 1px solid rgba(16, 185, 129, 0.32);
-    color: #A7F3D0;
+    color: #34D399;
     border-radius: 22px;
     padding: 14px 18px;
     margin-bottom: 22px;
@@ -235,7 +235,7 @@ h1 {
 
 .primary-btn {
     margin-top: 18px;
-    background: #6366F1;
+    background: #4338CA;
     color: #FFFFFF;
     border: none;
     border-radius: 40px;
@@ -249,13 +249,13 @@ h1 {
 }
 
 .primary-btn:hover {
-    background: #4F46E5;
+    background: #4338CA;
     transform: translateY(-2px);
 }
 
 .field-error,
 .form-errors {
-    color: #FDA4AF;
+    color: #FB7185;
     font-size: 12px;
     margin-top: 6px;
 }
@@ -302,7 +302,7 @@ h1 {
 
 .role-badge {
     background: rgba(52, 211, 153, 0.14);
-    color: #A7F3D0 !important;
+    color: #34D399 !important;
     border: 1px solid rgba(52, 211, 153, 0.25);
     border-radius: 40px;
     padding: 6px 12px;
@@ -336,13 +336,13 @@ h1 {
 
 .state-badge.active {
     background: rgba(52, 211, 153, 0.14);
-    color: #A7F3D0;
+    color: #34D399;
     border: 1px solid rgba(52, 211, 153, 0.25);
 }
 
 .state-badge.suspended {
     background: rgba(251, 113, 133, 0.14);
-    color: #FDA4AF;
+    color: #FB7185;
     border: 1px solid rgba(251, 113, 133, 0.28);
 }
 
@@ -395,7 +395,7 @@ h1 {
 }
 
 .secondary-btn:hover {
-    background: #6366F1;
+    background: #4338CA;
     color: #FFFFFF;
     transform: translateY(-2px);
 }
@@ -403,7 +403,7 @@ h1 {
 .danger-btn {
     background: rgba(251, 113, 133, 0.12);
     border: 1px solid rgba(251, 113, 133, 0.24);
-    color: #FDA4AF;
+    color: #FB7185;
 }
 
 .danger-btn:hover {

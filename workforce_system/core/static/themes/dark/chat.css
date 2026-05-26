@@ -12,7 +12,7 @@ html {
 body {
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     background: #1E293B;
-    color: #F8FAFC;
+    color: #F1F5F9;
     height: 100vh;
     overflow: hidden;
     padding: 16px;
@@ -175,11 +175,19 @@ body {
 }
 
 .conversation-team {
-    background: #0F766E;
+    background: #34D399;
 }
 
 .conversation-meta {
     min-width: 0;
+}
+
+.conversation-title-row {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 .conversation-meta strong,
@@ -194,6 +202,7 @@ body {
 .conversation-meta strong {
     color: #FEFBF6;
     font-size: 0.98rem;
+    min-width: 0;
 }
 
 .conversation-meta small,
@@ -201,6 +210,20 @@ body {
     color: #94A3B8;
     margin-top: 3px;
     font-size: 0.85rem;
+}
+
+.chat-unread-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #FB7185;
+    box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.16);
+    flex: 0 0 auto;
+}
+
+.conversation-item.unread .last-message,
+.conversation-item.unread .conversation-meta strong {
+    color: #FFFFFF;
 }
 
 .message-panel {
@@ -309,7 +332,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 22px;
     background: rgba(0, 0, 0, 0.28);
-    color: #F8FAFC;
+    color: #F1F5F9;
     padding: 11px 14px;
     font: inherit;
     font-weight: 600;
@@ -342,7 +365,7 @@ body {
 }
 
 .message-form button:hover {
-    background: #E11D48;
+    background: #FB7185;
     transform: translateY(-1px);
 }
 

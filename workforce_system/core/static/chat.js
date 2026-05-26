@@ -3,6 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("messageForm");
     const bodyInput = document.getElementById("messageBody");
     const errorBox = document.getElementById("chatError");
+    let messagesRefreshInFlight = false;
+    let unreadRefreshInFlight = false;
 
     function csrfToken() {
         const tokenInput = document.querySelector("[name=csrfmiddlewaretoken]");
@@ -54,6 +56,51 @@ document.addEventListener("DOMContentLoaded", () => {
         preview.textContent = text.length > 42 ? `${text.slice(0, 39)}...` : text;
     }
 
+    function setConversationUnread(item, hasUnread) {
+        if (!item) return;
+
+        item.classList.toggle("unread", hasUnread);
+        const dot = item.querySelector(".chat-unread-dot");
+        if (dot) {
+            dot.hidden = !hasUnread;
+        }
+    }
+
+    function updateConversationPreview(item, lastMessage) {
+        if (!item || !lastMessage) return;
+
+        const preview = item.querySelector(".last-message");
+        if (preview) {
+            preview.textContent = lastMessage.preview || "No messages yet";
+        }
+    }
+
+    async function refreshUnreadStatus() {
+        const statusUrl = document.body.dataset.unreadStatusUrl;
+        if (!statusUrl || unreadRefreshInFlight) return;
+
+        unreadRefreshInFlight = true;
+        try {
+            const response = await fetch(statusUrl, {
+                cache: "no-store",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            });
+            if (!response.ok) return;
+
+            const selectedId = document.body.dataset.selectedConversation;
+            const data = await response.json();
+            data.conversations.forEach((conversation) => {
+                const item = document.querySelector(`.conversation-item[data-conversation-id="${conversation.id}"]`);
+                if (!item) return;
+
+                updateConversationPreview(item, conversation.last_message);
+                setConversationUnread(item, String(conversation.id) !== selectedId && conversation.unread_count > 0);
+            });
+        } finally {
+            unreadRefreshInFlight = false;
+        }
+    }
+
     function showError(message) {
         if (!errorBox) return;
         errorBox.textContent = message;
@@ -61,26 +108,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function refreshMessages(keepPosition = false) {
-        if (!messages || !messages.dataset.messagesUrl) return;
+        if (!messages || !messages.dataset.messagesUrl || messagesRefreshInFlight) return;
 
-        const nearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
-        const response = await fetch(messages.dataset.messagesUrl, {
-            headers: { "X-Requested-With": "XMLHttpRequest" },
-        });
+        messagesRefreshInFlight = true;
+        try {
+            const nearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
+            const response = await fetch(messages.dataset.messagesUrl, {
+                cache: "no-store",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            });
 
-        if (!response.ok) return;
+            if (!response.ok) return;
 
-        const data = await response.json();
-        messages.innerHTML = data.messages.length
-            ? data.messages.map(renderMessage).join("")
-            : '<p class="empty-chat" id="emptyChat">No messages yet.</p>';
+            const data = await response.json();
+            messages.innerHTML = data.messages.length
+                ? data.messages.map(renderMessage).join("")
+                : '<p class="empty-chat" id="emptyChat">No messages yet.</p>';
 
-        if (data.messages.length) {
-            updateLastMessagePreview(data.messages[data.messages.length - 1]);
-        }
+            if (data.messages.length) {
+                updateLastMessagePreview(data.messages[data.messages.length - 1]);
+            }
+            setConversationUnread(selectedConversationItem(), false);
 
-        if (!keepPosition || nearBottom) {
-            scrollToBottom();
+            if (!keepPosition || nearBottom) {
+                scrollToBottom();
+            }
+        } finally {
+            messagesRefreshInFlight = false;
         }
     }
 
@@ -117,6 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 bodyInput.value = "";
                 bodyInput.style.height = "";
                 updateLastMessagePreview(data.message);
+                setConversationUnread(selectedConversationItem(), false);
                 await refreshMessages(false);
             } catch (error) {
                 showError("Message could not be sent.");
@@ -135,7 +190,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     scrollToBottom();
+    refreshUnreadStatus();
     if (messages) {
-        window.setInterval(() => refreshMessages(true), 10000);
+        window.setInterval(() => {
+            refreshMessages(true);
+            refreshUnreadStatus();
+        }, 10000);
     }
+    window.setInterval(refreshUnreadStatus, 5000);
 });

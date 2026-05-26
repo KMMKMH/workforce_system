@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Request Leave | Workforce System</title>
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/leave_request_light.css' %}{% else %}{% static 'themes/dark/leave_request.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/leave_request.css' %}" data-light-theme="{% static 'themes/light/leave_request_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body>
+<div class="leave-page">
+    <div class="back-nav">
+        <a href="{% url 'dashboard' %}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+
+    <section class="leave-panel">
+        <div class="section-header">
+            <h1><i class="fas fa-calendar-plus"></i> Request Leave</h1>
+            <p>Send HR a day-off request for tomorrow or later. Approved leave is treated as a paid non-working day.</p>
+        </div>
+
+        {% if success_message %}
+            <div class="success-message"><i class="fas fa-check-circle"></i> {{ success_message }}</div>
+        {% endif %}
+
+        <form method="POST" class="leave-form">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div>
+                    <label for="{{ form.date.id_for_label }}">Leave Date</label>
+                    {{ form.date }}
+                    {% if form.date.errors %}<div class="field-error">{{ form.date.errors }}</div>{% endif %}
+                </div>
+            </div>
+
+            <label for="{{ form.reason.id_for_label }}">Reason</label>
+            {{ form.reason }}
+            {% if form.reason.errors %}<div class="field-error">{{ form.reason.errors }}</div>{% endif %}
+            {% if form.non_field_errors %}<div class="field-error">{{ form.non_field_errors }}</div>{% endif %}
+
+            <button type="submit" class="primary-btn"><i class="fas fa-paper-plane"></i> Send Request</button>
+        </form>
+    </section>
+
+    <section class="leave-panel history-panel">
+        <div class="section-header">
+            <h2><i class="fas fa-clock-rotate-left"></i> My Leave Requests</h2>
+            <p>Pending requests and approvals reviewed today.</p>
+        </div>
+
+        <div class="leave-list">
+            {% for leave in leave_requests %}
+                <article class="leave-card">
+                    <div>
+                        <strong>{{ leave.date|date:"M d, Y" }}</strong>
+                        <span>{{ leave.reason|default:"No reason provided" }}</span>
+                    </div>
+                    <span class="status-pill status-{{ leave.status|lower }}">{{ leave.get_status_display }}</span>
+                </article>
+            {% empty %}
+                <p class="empty-message">No leave requests yet.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+<script src="{% static 'theme_switcher.js' %}"></script>
+</body>
+</html>

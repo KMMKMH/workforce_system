@@ -4,11 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <title>HR Dashboard | Workforce System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_dashboard_light.css' %}{% else %}{% static 'themes/dark/hr_dashboard.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_dashboard.css' %}" data-light-theme="{% static 'themes/light/hr_dashboard_light.css' %}">
     {% include "components/theme_bootstrap.html" %}
 </head>
 <body>
+{% include "components/confirm_modal.html" %}
 <div class="ceo-dashboard">
     <div class="top-band">
         <div class="card"><p><i class="fas fa-users"></i> Staff</p><strong>{{ staff_count }}</strong></div>
@@ -39,6 +40,8 @@
                             <option value="OFFLINE">Offline</option>
                             <option value="PRESENT">Present</option>
                             <option value="LOW_HOURS">Short hours</option>
+                            <option value="LEAVE">Leave</option>
+                            <option value="HOLIDAY">Holiday</option>
                             <option value="WORKING_HOLIDAY">Holiday overtime</option>
                         </select>
                     </div>
@@ -83,9 +86,16 @@
     </div>
 
     <div class="portal-bar">
-        <a href="{% url 'chat' %}" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
+        <a href="{% url 'chat' %}" class="portal-btn chat-portal-btn" data-unread-status-url="{% url 'chat_unread_status' %}">
+            <i class="fas fa-comment"></i> Chat
+            {% if unread_chat_count %}<span class="portal-alert-dot" aria-label="{{ unread_chat_count }} unread chats"></span>{% endif %}
+        </a>
         <a href="{% url 'profile' %}" class="portal-btn"><i class="fas fa-user"></i> Profile</a>
         <a href="{% url 'hr_staff_management' %}" class="portal-btn"><i class="fas fa-users-gear"></i> Staff</a>
+        <a href="{% url 'hr_leave_requests' %}" class="portal-btn leave-portal-btn">
+            <i class="fas fa-calendar-check"></i> Leave
+            {% if pending_leave_count %}<span class="pending-dot" aria-label="{{ pending_leave_count }} pending leave requests"></span>{% endif %}
+        </a>
         <a href="{% url 'hr_analytics' %}" class="portal-btn"><i class="fas fa-chart-line"></i> Analytics</a>
         <a href="{% url 'hr_accountant' %}" class="portal-btn"><i class="fas fa-file-invoice-dollar"></i> Accountant</a>
         <a href="{% url 'hr_attendance_calendar' %}" class="portal-btn"><i class="fas fa-calendar"></i> Attendance Calendar</a>
@@ -98,7 +108,9 @@
     <div class="footer"><i class="fas fa-building"></i> Coftech Workforce System 2026</div>
 </div>
 
+<script src="{% static 'confirm_modal.js' %}"></script>
 <script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'chat_notifications.js' %}"></script>
 <script src="{% static 'hr_dashboard.js' %}"></script>
 </body>
 </html>

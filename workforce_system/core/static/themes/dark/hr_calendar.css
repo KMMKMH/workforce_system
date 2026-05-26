@@ -1,12 +1,12 @@
 @import url("ceo_calendar.css");
 
 .fc .fc-event.attendance-anomaly {
-    background: #A855F7 !important;
+    background: #818CF8 !important;
     border: none !important;
 }
 
 .fc .fc-event.attendance-anomaly:hover {
-    background: #7E22CE !important;
+    background: #6366F1 !important;
 }
 
 .fc .fc-event.attendance-normal:hover {

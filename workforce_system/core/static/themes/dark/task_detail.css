@@ -77,8 +77,8 @@ body {
 .status-pending { color: #F59E0B; border-left: 3px solid #F59E0B; background: rgba(245, 158, 11, 0.1); }
 .status-in_progress { color: #818CF8; border-left: 3px solid #818CF8; background: rgba(129, 140, 248, 0.15); }
 .status-ready { color: #34D399; border-left: 3px solid #34D399; background: rgba(52, 211, 153, 0.1); }
-.status-review { color: #C084FC; border-left: 3px solid #C084FC; background: rgba(192, 132, 252, 0.1); }
-.status-done { color: #10B981; border-left: 3px solid #10B981; background: rgba(16, 185, 129, 0.1); }
+.status-review { color: #818CF8; border-left: 3px solid #818CF8; background: rgba(192, 132, 252, 0.1); }
+.status-done { color: #34D399; border-left: 3px solid #34D399; background: rgba(52, 211, 153, 0.1); }
 
 .task-actions {
     display: flex;

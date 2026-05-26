@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leave Requests | Workforce System</title>
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_leave_requests_light.css' %}{% else %}{% static 'themes/dark/hr_leave_requests.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_leave_requests.css' %}" data-light-theme="{% static 'themes/light/hr_leave_requests_light.css' %}">
+    {% include "components/theme_bootstrap.html" %}
+</head>
+<body>
+<div class="leave-page">
+    <form class="csrf-holder">{% csrf_token %}</form>
+    <div class="back-nav">
+        <a href="{% url 'hr_dashboard' %}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+
+    <header class="page-heading">
+        <h1><i class="fas fa-calendar-check"></i> Leave Requests</h1>
+        <p>Approve paid leave or reject requests that should not affect attendance.</p>
+    </header>
+
+    <div class="message-bar" id="leaveMessage" hidden></div>
+
+    <section class="leave-panel">
+        <div class="section-header">
+            <h2><i class="fas fa-hourglass-half"></i> Pending Requests</h2>
+            <span class="count-pill" id="pendingLeaveCount">{{ pending_requests|length }}</span>
+        </div>
+
+        <div class="request-list" id="pendingLeaveList">
+            {% for leave in pending_requests %}
+                <article class="request-card" data-leave-id="{{ leave.id }}">
+                    <div class="request-main">
+                        <strong>{{ leave.user.username }}</strong>
+                        <span>{{ leave.user.get_role_display }}{% if leave.user.profile.position %}, {{ leave.user.profile.position }}{% endif %}</span>
+                        <p>{{ leave.reason|default:"No reason provided" }}</p>
+                    </div>
+                    <div class="request-date">
+                        <i class="fas fa-calendar-day"></i>
+                        <strong>{{ leave.date|date:"M d, Y" }}</strong>
+                        <span>Requested {{ leave.created_at|date:"M d, H:i" }}</span>
+                    </div>
+                    <div class="request-actions">
+                        <button type="button" class="action-btn approve-btn" data-leave-action="approve" data-url="{% url 'hr_leave_requests' %}">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button type="button" class="action-btn reject-btn" data-leave-action="reject" data-url="{% url 'hr_leave_requests' %}">
+                            <i class="fas fa-xmark"></i> Reject
+                        </button>
+                    </div>
+                </article>
+            {% empty %}
+                <p class="empty-message" id="emptyPending">No pending leave requests.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="leave-panel">
+        <div class="section-header">
+            <h2><i class="fas fa-list-check"></i> Recently Approved</h2>
+        </div>
+
+        <div class="request-list compact" id="approvedLeaveList">
+            {% for leave in approved_requests %}
+                <article class="request-card approved-card">
+                    <div class="request-main">
+                        <strong>{{ leave.user.username }}</strong>
+                        <span>{{ leave.date|date:"M d, Y" }}{% if leave.reviewed_by %} - approved by {{ leave.reviewed_by.username }}{% endif %}</span>
+                    </div>
+                    <span class="status-pill">Approved</span>
+                </article>
+            {% empty %}
+                <p class="empty-message" id="emptyApproved">No approved leave requests today.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+<script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'hr_leave_requests.js' %}"></script>
+</body>
+</html>

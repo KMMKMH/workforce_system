@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ mode }} | Workforce System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_bonus_form_light.css' %}{% else %}{% static 'themes/dark/hr_bonus_form.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_bonus_form.css' %}" data-light-theme="{% static 'themes/light/hr_bonus_form_light.css' %}">
     {% include "components/theme_bootstrap.html" %}
 </head>

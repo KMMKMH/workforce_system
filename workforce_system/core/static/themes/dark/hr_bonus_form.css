@@ -7,7 +7,7 @@
 body {
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     background: #1E293B;
-    color: #F8FAFC;
+    color: #F1F5F9;
     min-height: 100vh;
     padding: 32px 24px;
 }
@@ -101,7 +101,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 18px;
     background-color: rgba(0, 0, 0, 0.28);
-    color: #F8FAFC;
+    color: #F1F5F9;
     padding: 12px 14px;
     font: inherit;
     font-weight: 600;
@@ -221,7 +221,7 @@ body {
 }
 
 .primary-btn:hover {
-    background: #E11D48;
+    background: #FB7185;
     transform: translateY(-2px);
 }
 

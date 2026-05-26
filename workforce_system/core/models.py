@@ -120,6 +120,46 @@ class Holiday(models.Model):
         return f"{self.name} - {self.date}"
 
 
+class LeaveRequest(models.Model):
+
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (APPROVED, "Approved"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="leave_requests"
+    )
+    date = models.DateField()
+    reason = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_leave_requests"
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "date")
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "date"]),
+            models.Index(fields=["user", "date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date} - {self.get_status_display()}"
+
+
 class PayrollAdjustment(models.Model):
 
     BONUS = "BONUS"
@@ -211,6 +251,7 @@ class ChatParticipant(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     joined_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ("conversation", "user")

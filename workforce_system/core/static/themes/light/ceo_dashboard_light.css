@@ -314,8 +314,8 @@ td span:last-child {
 .status-pill.status-short { color: #D97706; background: #FEF3C7; }
 .status-pill.status-absent { color: #DC2626; background: #FEF2F2; }
 .status-pill.status-leave { color: #2563EB; background: #EFF6FF; }
-.status-pill.status-holiday { color: #6366F1; background: #EEF2FF; }
-.status-pill.status-overtime { color: #EA580C; background: #FFF7ED; }
+.status-pill.status-holiday { color: #3B82F6; background: #EFF6FF; }
+.status-pill.status-overtime { color: #F97316; background: #FFF7ED; }
 .status-pill.status-offline { color: #64748B; background: #F1F5F9; }
 
 .alert-text {
@@ -563,6 +563,18 @@ td span:last-child {
     align-items: center;
     gap: 8px;
     border: 1px solid #E2E8F0;
+}
+.chat-portal-btn {
+    position: relative;
+}
+.portal-alert-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.16);
+    display: inline-block;
+    flex: 0 0 auto;
 }
 .portal-btn:hover {
     background: #10B981;

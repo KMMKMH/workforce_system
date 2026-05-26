@@ -7,7 +7,7 @@
     <title>{{ task.title }} - Task Details</title>
     <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/task_detail_light.css' %}{% else %}{% static 'themes/dark/task_detail.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/task_detail.css' %}" data-light-theme="{% static 'themes/light/task_detail_light.css' %}">
     {% include "components/theme_bootstrap.html" %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
 </head>
 <body data-can-manage="{{ can_manage|yesno:'true,false' }}" data-review-subject="{{ review_subject }}" data-image-role="{{ image_upload_role }}">
 {% include "components/confirm_modal.html" %}

@@ -420,6 +420,12 @@ select#monthSelect option {
     background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(52, 211, 153, 0.08) 100%);
 }
 
+.salary-adjustment-card.warning {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(245, 158, 11, 0.1) 100%);
+}
+
+.salary-adjustment-card.danger,
 .salary-adjustment-card.negative {
     border-color: rgba(251, 113, 133, 0.4);
     background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(251, 113, 133, 0.08) 100%);
@@ -450,6 +456,12 @@ select#monthSelect option {
     color: #34D399;
 }
 
+.salary-adjustment-card.warning .salary-icon {
+    background: rgba(245, 158, 11, 0.16);
+    color: #F59E0B;
+}
+
+.salary-adjustment-card.danger .salary-icon,
 .salary-adjustment-card.negative .salary-icon {
     background: rgba(251, 113, 133, 0.15);
     color: #FB7185;
@@ -476,6 +488,11 @@ select#monthSelect option {
     color: #34D399;
 }
 
+.salary-adjustment-card.warning #salaryAdjustmentTotal {
+    color: #F59E0B;
+}
+
+.salary-adjustment-card.danger #salaryAdjustmentTotal,
 .salary-adjustment-card.negative #salaryAdjustmentTotal {
     color: #FB7185;
 }

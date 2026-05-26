@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Analytics | Workforce System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/analytics_light.css' %}{% else %}{% static 'themes/dark/analytics.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/analytics.css' %}" data-light-theme="{% static 'themes/light/analytics_light.css' %}">
     {% include "components/theme_bootstrap.html" %}
 </head>
@@ -47,12 +47,16 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div>
-                <span class="salary-label">Salary adjustment to date</span>
-                <strong id="salaryAdjustmentTotal">{{ salary_adjustment_display }}</strong>
-                <span class="salary-caption" id="salaryAdjustmentLabel">{{ salary_adjustment_label }} this month</span>
+                <span class="salary-label">Prorated monthly net pay</span>
+                <strong id="salaryAdjustmentTotal">{{ net_pay_display }}</strong>
+                <span class="salary-caption" id="salaryAdjustmentLabel">{{ salary_adjustment_label }}</span>
             </div>
         </div>
         <div class="salary-breakdown">
+            <div>
+                <span>Monthly salary</span>
+                <strong id="salaryMonthly">${{ salary_monthly }}</strong>
+            </div>
             <div>
                 <span>Deductions</span>
                 <strong id="salaryDeductions">${{ salary_deductions }}</strong>

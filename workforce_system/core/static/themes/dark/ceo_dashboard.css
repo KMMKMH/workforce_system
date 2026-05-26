@@ -58,7 +58,7 @@ body {
 }
 
 .top-band .metric-shortcut:hover {
-    border-color: rgba(16, 185, 129, 0.45);
+    border-color: rgba(52, 211, 153, 0.45);
 }
 
 .top-band .card p {
@@ -311,10 +311,10 @@ td span:last-child {
 }
 .status-pill.status-active { color: #34D399; background: rgba(52, 211, 153, 0.1); }
 .status-pill.status-short { color: #F59E0B; background: rgba(245, 158, 11, 0.1); }
-.status-pill.status-absent { color: #F43F5E; background: rgba(244, 63, 94, 0.1); }
-.status-pill.status-leave { color: #60A5FA; background: rgba(96, 165, 250, 0.1); }
+.status-pill.status-absent { color: #FB7185; background: rgba(251, 113, 133, 0.1); }
+.status-pill.status-leave { color: #818CF8; background: rgba(129, 140, 248, 0.1); }
 .status-pill.status-holiday { color: #818CF8; background: rgba(129, 140, 248, 0.1); }
-.status-pill.status-overtime { color: #F97316; background: rgba(249, 115, 22, 0.1); }
+.status-pill.status-overtime { color: #F59E0B; background: rgba(249, 115, 22, 0.1); }
 .status-pill.status-offline { color: #64748B; background: rgba(100, 116, 139, 0.1); }
 
 .alert-text {
@@ -563,6 +563,18 @@ td span:last-child {
     gap: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
+.chat-portal-btn {
+    position: relative;
+}
+.portal-alert-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #FB7185;
+    box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.16);
+    display: inline-block;
+    flex: 0 0 auto;
+}
 .portal-btn:hover {
     background: #4338CA;
     color: white;
@@ -584,7 +596,7 @@ td span:last-child {
     gap: 8px;
 }
 .logout-btn:hover {
-    background: #F43F5E;
+    background: #FB7185;
     transform: translateY(-2px);
 }
 .footer {

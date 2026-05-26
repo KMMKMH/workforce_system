@@ -11,7 +11,17 @@ function updateClock() {
 }
 
 function logOut() {
-    window.location.href = "/";
+    showConfirm(
+        "Are you sure you want to log out?",
+        () => {
+            window.location.href = "/face/verify/?mode=logout";
+        },
+        {
+            title: "Logout",
+            status: "danger",
+            confirmText: "Logout"
+        }
+    );
 }
 
 function attendanceFilterLabel(value) {
@@ -21,6 +31,8 @@ function attendanceFilterLabel(value) {
         OFFLINE: "offline staff",
         PRESENT: "present staff",
         LOW_HOURS: "short-hours records",
+        LEAVE: "leave records",
+        HOLIDAY: "holiday records",
         WORKING_HOLIDAY: "holiday overtime records"
     };
 
@@ -69,6 +81,7 @@ function attachAttendanceFilter() {
 
 document.addEventListener("DOMContentLoaded", function () {
     updateClock();
+    loadConfirmModal();
     setInterval(updateClock, 1000);
     attachAttendanceFilter();
 });

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
-from .models import PayrollAdjustment, Profile, Task, User
+from .models import Holiday, LeaveRequest, PayrollAdjustment, Profile, Task, User
 
 PASSWORD_FIELD_ATTRS = {
     "autocomplete": "new-password",
@@ -196,7 +196,8 @@ class HRStaffCreationForm(forms.Form):
         profile.position = self.cleaned_data.get("position")
         profile.salary = self.cleaned_data.get("salary")
         profile.manager = self.cleaned_data.get("manager")
-        profile.save(update_fields=["department", "position", "salary", "manager"])
+        profile.biometric_enabled = 1
+        profile.save(update_fields=["department", "position", "salary", "manager" ,"biometric_enabled"])
         return user
 
 
@@ -289,6 +290,51 @@ class PayrollBonusForm(forms.ModelForm):
             adjustment.save()
 
         return adjustment
+
+
+class LeaveRequestForm(forms.ModelForm):
+    class Meta:
+        model = LeaveRequest
+        fields = ["date", "reason"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+            "reason": forms.Textarea(attrs={"rows": 4, "placeholder": "Reason for leave"}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        tomorrow = timezone.now().date() + timezone.timedelta(days=1)
+        self.fields["date"].widget.attrs["min"] = tomorrow.strftime("%Y-%m-%d")
+
+        for field in self.fields.values():
+            field.widget.attrs.setdefault("class", "form-control")
+
+    def clean_date(self):
+        leave_date = self.cleaned_data["date"]
+        tomorrow = timezone.now().date() + timezone.timedelta(days=1)
+
+        if leave_date < tomorrow:
+            raise forms.ValidationError("Leave requests can only be made for tomorrow or future dates.")
+
+        if leave_date.weekday() in [5, 6] or Holiday.objects.filter(date=leave_date).exists():
+            raise forms.ValidationError("This day is already a non-working day.")
+
+        if self.user and LeaveRequest.objects.filter(user=self.user, date=leave_date).exists():
+            raise forms.ValidationError("You already have a leave request for this date.")
+
+        return leave_date
+
+    def save(self, commit=True):
+        leave_request = super().save(commit=False)
+
+        if self.user:
+            leave_request.user = self.user
+
+        if commit:
+            leave_request.save()
+
+        return leave_request
 
 
 class ManagerTaskForm(forms.ModelForm):

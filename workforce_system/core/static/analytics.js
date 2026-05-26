@@ -57,8 +57,9 @@ document.addEventListener("DOMContentLoaded", () => {
             setText("totalCommits", data.total_commits);
             setText("commitsPerDay", data.commits_per_day);
             setText("activeDays", data.active_days);
-            setText("salaryAdjustmentTotal", data.salary_adjustment_display);
-            setText("salaryAdjustmentLabel", `${data.salary_adjustment_label} this month`);
+            setText("salaryAdjustmentTotal", data.net_pay_display);
+            setText("salaryAdjustmentLabel", data.salary_adjustment_label);
+            setText("salaryMonthly", `$${data.salary_monthly}`);
             setText("salaryDeductions", `$${data.salary_deductions}`);
             setText("salaryAdditions", `$${data.holiday_overtime_addition}`);
             setText("salaryBonuses", `$${data.bonus_total}`);
@@ -68,7 +69,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const salaryCard = document.querySelector(".salary-adjustment-card");
             if (salaryCard) {
                 salaryCard.classList.toggle("positive", data.salary_adjustment_class === "positive");
-                salaryCard.classList.toggle("negative", data.salary_adjustment_class === "negative");
+                salaryCard.classList.toggle("warning", data.salary_adjustment_class === "warning");
+                salaryCard.classList.toggle("danger", data.salary_adjustment_class === "danger");
             }
 
             const trendText = document.getElementById("trendText");

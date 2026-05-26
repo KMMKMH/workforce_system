@@ -321,7 +321,7 @@ function attachSimpleSearchFilters() {
             });
 
             if (empty) {
-                empty.hidden = visibleCount > 0;
+                empty.hidden = targets.length === 0 || visibleCount > 0;
             }
         }
 

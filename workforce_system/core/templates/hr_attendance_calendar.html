@@ -4,9 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>HR Attendance Calendar | Workforce System</title>
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="{% static 'vendor/fullcalendar/index.global.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/hr_calendar_light.css' %}{% else %}{% static 'themes/dark/hr_calendar.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/hr_calendar.css' %}" data-light-theme="{% static 'themes/light/hr_calendar_light.css' %}">
     {% include "components/theme_bootstrap.html" %}
 </head>

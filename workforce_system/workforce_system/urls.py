@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib.auth.views import PasswordChangeView, PasswordChangeDoneView
 from django.urls import path
-from core.views import add_task_commit, add_task_images, calendar_view, ceo_analytics, ceo_anomalies, ceo_calendar_view, ceo_dashboard, ceo_delete_task, ceo_edit_task, ceo_staff_management, chat_messages, chat_send_message, chat_view, dashboard, delete_task_image, edit_commit, delete_commit, employee_analytics, employee_anomalies, hr_accountant, hr_add_bonus, hr_analytics, hr_attendance_calendar, hr_dashboard, hr_staff_management, login_view, face_verify, face_register, manager_analytics, manager_anomalies, manager_calendar_view, manager_dashboard, manager_delete_task, manager_edit_task, profile_cv, task_detail, update_task_status, profile_view
+from core.views import add_task_commit, add_task_images, calendar_view, ceo_analytics, ceo_anomalies, ceo_calendar_view, ceo_dashboard, ceo_delete_task, ceo_edit_task, ceo_staff_management, chat_messages, chat_send_message, chat_unread_status, chat_view, dashboard, delete_task_image, edit_commit, delete_commit, employee_analytics, employee_anomalies, hr_accountant, hr_add_bonus, hr_analytics, hr_attendance_calendar, hr_dashboard, hr_leave_requests, hr_staff_management, leave_request_view, login_view, face_verify, face_register, manager_analytics, manager_anomalies, manager_calendar_view, manager_dashboard, manager_delete_task, manager_edit_task, profile_cv, task_detail, update_task_status, profile_view
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -38,9 +38,12 @@ urlpatterns = [
     path('hr/accountant/', hr_accountant, name='hr_accountant'),
     path('hr/accountant/bonus/add/', hr_add_bonus, name='hr_add_bonus'),
     path('hr/attendance-calendar/', hr_attendance_calendar, name='hr_attendance_calendar'),
+    path('hr/leave-requests/', hr_leave_requests, name='hr_leave_requests'),
+    path('leave/request/', leave_request_view, name='leave_request'),
     path('chat/', chat_view, name='chat'),
     path('chat/<int:conversation_id>/messages/', chat_messages, name='chat_messages'),
     path('chat/<int:conversation_id>/send/', chat_send_message, name='chat_send_message'),
+    path('chat/unread-status/', chat_unread_status, name='chat_unread_status'),
     path('tasks/update/', update_task_status, name='update_task_status'),
     path('manager/dashboard/', manager_dashboard, name='manager_dashboard'),
     path('manager/tasks/<int:task_id>/edit/', manager_edit_task, name='manager_edit_task'),

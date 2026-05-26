@@ -4,22 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <title>Chat | Workforce System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/chat_light.css' %}{% else %}{% static 'themes/dark/chat.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/chat.css' %}" data-light-theme="{% static 'themes/light/chat_light.css' %}">
     {% include "components/theme_bootstrap.html" %}
 </head>
-<body data-selected-conversation="{% if selected_conversation %}{{ selected_conversation.id }}{% endif %}">
+<body data-selected-conversation="{% if selected_conversation %}{{ selected_conversation.id }}{% endif %}" data-unread-status-url="{% url 'chat_unread_status' %}">
 <div class="chat-page">
     <div class="chat-topbar">
         <a href="{% url 'dashboard' %}" class="back-btn">
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </a>
-        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
-            <span class="theme-toggle-track">
-                <span class="theme-toggle-thumb"><i class="fas fa-moon"></i></span>
-            </span>
-            <span class="theme-toggle-text">Dark</span>
-        </button>
     </div>
 
     <main class="chat-shell">
@@ -31,7 +25,7 @@
 
             <div class="conversation-list">
                 {% for row in conversation_rows %}
-                    <a href="{% url 'chat' %}?conversation={{ row.conversation.id }}" class="conversation-item {% if row.is_selected %}active{% endif %}" data-conversation-id="{{ row.conversation.id }}">
+                    <a href="{% url 'chat' %}?conversation={{ row.conversation.id }}" class="conversation-item {% if row.is_selected %}active{% endif %} {% if row.unread_count %}unread{% endif %}" data-conversation-id="{{ row.conversation.id }}">
                         <span class="conversation-icon conversation-{{ row.conversation.conversation_type|lower }}">
                             {% if row.conversation.conversation_type == "ANNOUNCEMENT" %}
                                 <i class="fas fa-bullhorn"></i>
@@ -42,7 +36,10 @@
                             {% endif %}
                         </span>
                         <span class="conversation-meta">
-                            <strong>{{ row.title }}</strong>
+                            <span class="conversation-title-row">
+                                <strong>{{ row.title }}</strong>
+                                <span class="chat-unread-dot" {% if not row.unread_count %}hidden{% endif %} aria-label="Unread messages"></span>
+                            </span>
                             <small>{{ row.subtitle }}</small>
                             {% if row.last_message %}
                                 <span class="last-message">{{ row.last_message.sender.username }}: {{ row.last_message.body|truncatechars:42 }}</span>

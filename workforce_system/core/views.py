@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.db import models
 from django.db.models import Sum
 from datetime import datetime, time, date, timedelta
 from pathlib import Path
@@ -19,9 +20,9 @@ import numpy as np
 from deepface import DeepFace
 from core.utils.helpers import ensure_holidays_exist, get_head_turn_direction
 from core.utils.attendance import auto_fix_attendance, handle_check_in, handle_check_out
-from core.models import Attendance, ChatMessage, ChatParticipant, Conversation, PayrollAdjustment, Task, Holiday, TaskCommit, TaskImage, User
+from core.models import Attendance, ChatMessage, ChatParticipant, Conversation, LeaveRequest, PayrollAdjustment, Task, Holiday, TaskCommit, TaskImage, User
 from core.data.display import STATUS_DISPLAY
-from core.forms import EmployeeProfileForm, HRCreationForm, HRStaffCreationForm, HRStaffUpdateForm, HRUpdateForm, ManagerTaskForm, CEOTaskForm, PayrollBonusForm
+from core.forms import EmployeeProfileForm, HRCreationForm, HRStaffCreationForm, HRStaffUpdateForm, HRUpdateForm, LeaveRequestForm, ManagerTaskForm, CEOTaskForm, PayrollBonusForm
 
 
 def manager_team_queryset(manager):
@@ -143,10 +144,37 @@ def direct_chat_contacts(user):
             contact_ids.append(user.profile.manager_id)
         return active_users.filter(id__in=contact_ids)
 
-    if user.role in ["MANAGER", "HR"]:
+    if user.role == "MANAGER":
+        contact_ids = list(User.objects.filter(role__in=["CEO", "HR"], is_active=True).values_list("id", flat=True))
+        contact_ids.extend(
+            user.team_members.filter(user__role="EMPLOYEE", user__is_active=True).values_list("user_id", flat=True)
+        )
+        return active_users.filter(id__in=contact_ids)
+
+    if user.role == "HR":
         return active_users
 
     return User.objects.none()
+
+
+def users_can_direct_chat(user, other):
+    if not user.is_active or not other.is_active:
+        return False
+
+    if user.role == "HR" or other.role == "HR":
+        return True
+
+    if user.role == "CEO":
+        return other.role == "MANAGER"
+    if other.role == "CEO":
+        return user.role == "MANAGER"
+
+    if user.role == "MANAGER" and other.role == "EMPLOYEE":
+        return other.profile.manager_id == user.id
+    if user.role == "EMPLOYEE" and other.role == "MANAGER":
+        return user.profile.manager_id == other.id
+
+    return False
 
 
 def direct_conversation_for_users(user, contact):
@@ -157,8 +185,16 @@ def direct_conversation_for_users(user, contact):
         direct_key=direct_key,
         defaults={"title": "Direct chat"}
     )
-    ChatParticipant.objects.get_or_create(conversation=conversation, user=user)
-    ChatParticipant.objects.get_or_create(conversation=conversation, user=contact)
+    ChatParticipant.objects.get_or_create(
+        conversation=conversation,
+        user=user,
+        defaults={"last_seen_at": timezone.now()}
+    )
+    ChatParticipant.objects.get_or_create(
+        conversation=conversation,
+        user=contact,
+        defaults={"last_seen_at": timezone.now()}
+    )
     return conversation
 
 
@@ -168,12 +204,50 @@ def sync_team_conversation(manager):
         team_manager=manager,
         defaults={"title": f"{manager.username}'s Team"}
     )
-    ChatParticipant.objects.get_or_create(conversation=conversation, user=manager)
+    ChatParticipant.objects.get_or_create(
+        conversation=conversation,
+        user=manager,
+        defaults={"last_seen_at": timezone.now()}
+    )
 
     current_participant_ids = {manager.id}
     for profile in manager.team_members.filter(user__role="EMPLOYEE", user__is_active=True).select_related("user"):
-        ChatParticipant.objects.get_or_create(conversation=conversation, user=profile.user)
+        ChatParticipant.objects.get_or_create(
+            conversation=conversation,
+            user=profile.user,
+            defaults={"last_seen_at": timezone.now()}
+        )
         current_participant_ids.add(profile.user_id)
+
+    ChatParticipant.objects.filter(conversation=conversation).exclude(user_id__in=current_participant_ids).delete()
+    return conversation
+
+
+def sync_managers_conversation():
+    ceo = User.objects.filter(role="CEO", is_active=True).order_by("id").first()
+    if not ceo:
+        return None
+
+    conversation, _ = Conversation.objects.get_or_create(
+        conversation_type=Conversation.TEAM,
+        team_manager=ceo,
+        defaults={"title": "Managers"}
+    )
+
+    current_participant_ids = {ceo.id}
+    ChatParticipant.objects.get_or_create(
+        conversation=conversation,
+        user=ceo,
+        defaults={"last_seen_at": timezone.now()}
+    )
+
+    for manager in User.objects.filter(role="MANAGER", is_active=True).order_by("username"):
+        ChatParticipant.objects.get_or_create(
+            conversation=conversation,
+            user=manager,
+            defaults={"last_seen_at": timezone.now()}
+        )
+        current_participant_ids.add(manager.id)
 
     ChatParticipant.objects.filter(conversation=conversation).exclude(user_id__in=current_participant_ids).delete()
     return conversation
@@ -185,7 +259,11 @@ def announcement_conversation():
         defaults={"title": "Announcements"}
     )
     for user in User.objects.filter(is_active=True, role__in=["CEO", "HR", "MANAGER", "EMPLOYEE"]):
-        ChatParticipant.objects.get_or_create(conversation=conversation, user=user)
+        ChatParticipant.objects.get_or_create(
+            conversation=conversation,
+            user=user,
+            defaults={"last_seen_at": timezone.now()}
+        )
     return conversation
 
 
@@ -194,6 +272,11 @@ def ensure_chat_conversations(user):
 
     for contact in direct_chat_contacts(user):
         conversations.append(direct_conversation_for_users(user, contact))
+
+    if user.role in ["CEO", "MANAGER"]:
+        managers_conversation = sync_managers_conversation()
+        if managers_conversation:
+            conversations.append(managers_conversation)
 
     if user.role == "MANAGER":
         conversations.append(sync_team_conversation(user))
@@ -204,7 +287,14 @@ def ensure_chat_conversations(user):
 
 
 def user_can_access_conversation(user, conversation):
-    return conversation.participants.filter(id=user.id).exists()
+    if not conversation.participants.filter(id=user.id).exists():
+        return False
+
+    if conversation.conversation_type == Conversation.DIRECT:
+        other = conversation.participants.exclude(id=user.id).first()
+        return bool(other and users_can_direct_chat(user, other))
+
+    return True
 
 
 def user_can_send_chat_message(user, conversation):
@@ -249,15 +339,81 @@ def serialize_chat_message(message, user):
     }
 
 
-@login_required
-def chat_view(request):
-    ensure_chat_conversations(request.user)
+def chat_participant_for(user, conversation):
+    return ChatParticipant.objects.filter(conversation=conversation, user=user).first()
+
+
+def unread_count_for_conversation(conversation, user):
+    participant = chat_participant_for(user, conversation)
+    if not participant:
+        return 0
+
+    unread_messages = conversation.messages.exclude(sender=user)
+    if participant.last_seen_at:
+        unread_messages = unread_messages.filter(created_at__gt=participant.last_seen_at)
+    return unread_messages.count()
+
+
+def mark_conversation_seen(conversation, user):
+    ChatParticipant.objects.filter(
+        conversation=conversation,
+        user=user
+    ).update(last_seen_at=timezone.now())
+
+
+def user_chat_conversations(user):
+    ensure_chat_conversations(user)
     conversations = list(
-        Conversation.objects.filter(participants=request.user)
+        Conversation.objects.filter(participants=user)
         .prefetch_related("participants")
         .order_by("-last_message_at", "conversation_type", "title")
         .distinct()
     )
+    return [
+        conversation for conversation in conversations
+        if user_can_access_conversation(user, conversation)
+    ]
+
+
+def unread_chat_count(user):
+    return sum(
+        1 for conversation in user_chat_conversations(user)
+        if unread_count_for_conversation(conversation, user) > 0
+    )
+
+
+def chat_last_message_payload(conversation, user):
+    last_message = conversation.messages.select_related("sender").order_by("-created_at").first()
+    if not last_message:
+        return {
+            "sender": "",
+            "body": "No messages yet",
+            "preview": "No messages yet",
+        }
+
+    preview = f"{last_message.sender.username}: {' '.join(last_message.body.split())}"
+    return {
+        "sender": last_message.sender.username,
+        "body": last_message.body,
+        "preview": preview[:39] + "..." if len(preview) > 42 else preview,
+    }
+
+
+def apply_approved_leave_request(leave_request):
+    attendance, _ = Attendance.objects.get_or_create(
+        user=leave_request.user,
+        date=leave_request.date
+    )
+    attendance.status = "LEAVE"
+    attendance.is_anomaly = False
+    attendance.anomaly_reason = ""
+    attendance.save()
+    return attendance
+
+
+@login_required
+def chat_view(request):
+    conversations = user_chat_conversations(request.user)
 
     selected_conversation = None
     selected_id = request.GET.get("conversation")
@@ -274,6 +430,7 @@ def chat_view(request):
 
     messages = []
     if selected_conversation:
+        mark_conversation_seen(selected_conversation, request.user)
         messages = selected_conversation.messages.select_related("sender").order_by("created_at")
 
     conversation_rows = []
@@ -285,6 +442,7 @@ def chat_view(request):
             "subtitle": conversation_subtitle(conversation, request.user),
             "last_message": last_message,
             "is_selected": selected_conversation and conversation.id == selected_conversation.id,
+            "unread_count": unread_count_for_conversation(conversation, request.user),
         })
 
     return render(request, "chat.html", {
@@ -303,10 +461,35 @@ def chat_messages(request, conversation_id):
     if not user_can_access_conversation(request.user, conversation):
         return JsonResponse({"error": "You cannot access this chat."}, status=403)
 
+    mark_conversation_seen(conversation, request.user)
     messages = conversation.messages.select_related("sender").order_by("created_at")
     return JsonResponse({
         "messages": [serialize_chat_message(message, request.user) for message in messages],
         "can_send": user_can_send_chat_message(request.user, conversation),
+    })
+
+
+@login_required
+def chat_unread_status(request):
+    conversations = user_chat_conversations(request.user)
+    conversation_payload = []
+    total_unread = 0
+
+    for conversation in conversations:
+        unread_count = unread_count_for_conversation(conversation, request.user)
+        if unread_count:
+            total_unread += 1
+
+        last_message = chat_last_message_payload(conversation, request.user)
+        conversation_payload.append({
+            "id": conversation.id,
+            "unread_count": unread_count,
+            "last_message": last_message,
+        })
+
+    return JsonResponse({
+        "total_unread": total_unread,
+        "conversations": conversation_payload,
     })
 
 
@@ -328,6 +511,7 @@ def chat_send_message(request, conversation_id):
     )
     conversation.last_message_at = message.created_at
     conversation.save(update_fields=["last_message_at"])
+    mark_conversation_seen(conversation, request.user)
 
     return JsonResponse({
         "message": serialize_chat_message(message, request.user),
@@ -336,6 +520,7 @@ def chat_send_message(request, conversation_id):
 
 def calculate_salary_adjustment(user, attendance, month_start, month_end):
     salary = float(user.profile.salary or 0)
+    join_date = user.date_joined.date()
     rate_month_end = date(
         month_start.year,
         month_start.month,
@@ -347,29 +532,41 @@ def calculate_salary_adjustment(user, attendance, month_start, month_end):
             date__lte=rate_month_end
         ).values_list("date", flat=True)
     )
+    leave_dates = set(
+        attendance.filter(status="LEAVE").values_list("date", flat=True)
+    )
 
     working_days = 0
     cursor = month_start
     while cursor <= rate_month_end:
-        if cursor.weekday() < 5 and cursor not in holiday_dates:
+        if cursor.weekday() < 5 and cursor not in holiday_dates and cursor not in leave_dates:
             working_days += 1
         cursor += timedelta(days=1)
 
     daily_rate = salary / working_days if salary and working_days else 0
     hourly_rate = daily_rate / 7 if daily_rate else 0
 
+    pre_join_days = 0
+    if month_start < join_date <= rate_month_end:
+        cursor = month_start
+        while cursor < join_date:
+            if cursor.weekday() < 5 and cursor not in holiday_dates and cursor not in leave_dates:
+                pre_join_days += 1
+            cursor += timedelta(days=1)
+
+    pre_join_deduction = pre_join_days * daily_rate
     absence_days = attendance.filter(status="ABSENT").count()
     absence_deduction = absence_days * daily_rate
 
     today = timezone.now().date()
     short_hours = 0
-    for row in attendance.exclude(status__in=["ABSENT", "HOLIDAY", "WORKING_HOLIDAY"]).exclude(date=today):
+    for row in attendance.exclude(status__in=["ABSENT", "HOLIDAY", "WORKING_HOLIDAY", "LEAVE"]).exclude(date=today):
         worked_hours = row.worked_hours or 0
         short_hours += max(7 - worked_hours, 0)
 
     short_hours_deduction = short_hours * hourly_rate
     holiday_overtime_hours = attendance.filter(
-        status="WORKING_HOLIDAY"
+        status__in=["WORKING_HOLIDAY", "LEAVE"]
     ).aggregate(Sum("worked_hours"))["worked_hours__sum"] or 0
     holiday_overtime_addition = holiday_overtime_hours * hourly_rate
     bonus_total = PayrollAdjustment.objects.filter(
@@ -379,26 +576,41 @@ def calculate_salary_adjustment(user, attendance, month_start, month_end):
     ).aggregate(Sum("amount"))["amount__sum"] or 0
     bonus_total = float(bonus_total)
 
-    deductions = absence_deduction + short_hours_deduction
+    deductions = pre_join_deduction + absence_deduction + short_hours_deduction
     additions = holiday_overtime_addition + bonus_total
     net_adjustment = additions - deductions
+    net_pay = salary + net_adjustment
+
+    if salary and net_pay < salary / 2:
+        salary_status_class = "danger"
+        salary_status_label = "Less than half of monthly salary"
+    elif salary and net_pay < salary:
+        salary_status_class = "warning"
+        salary_status_label = "Below monthly salary"
+    else:
+        salary_status_class = "positive"
+        salary_status_label = "Salary intact or above"
 
     return {
         "salary_monthly": round(salary, 2),
+        "net_pay": round(net_pay, 2),
+        "net_pay_display": f"${net_pay:.2f}",
         "salary_deductions": round(deductions, 2),
+        "pre_join_deduction": round(pre_join_deduction, 2),
         "salary_additions": round(additions, 2),
         "holiday_overtime_addition": round(holiday_overtime_addition, 2),
         "bonus_total": round(bonus_total, 2),
         "salary_adjustment_total": round(net_adjustment, 2),
         "salary_adjustment_display": f"{'+' if net_adjustment >= 0 else '-'}${abs(net_adjustment):.2f}",
-        "salary_adjustment_class": "positive" if net_adjustment >= 0 else "negative",
-        "salary_adjustment_label": "Added" if net_adjustment >= 0 else "Deducted",
+        "salary_adjustment_class": salary_status_class,
+        "salary_adjustment_label": salary_status_label,
         "absence_days": absence_days,
         "short_hours": round(short_hours, 2),
         "holiday_overtime_hours": round(holiday_overtime_hours, 2),
         "daily_rate": round(daily_rate, 2),
         "hourly_rate": round(hourly_rate, 2),
         "expected_working_days": working_days,
+        "pre_join_days": pre_join_days,
     }
 
 
@@ -737,9 +949,38 @@ def dashboard(request):
         "selected_task_status": selected_status,
         "alert": alerts,
         "show_manager_portal": user.role == "MANAGER",
+        "unread_chat_count": unread_chat_count(user),
     }
 
     return render(request, "dashboard.html", context)
+
+
+@login_required
+def leave_request_view(request):
+    if request.user.role not in ["EMPLOYEE", "MANAGER"]:
+        return redirect("dashboard")
+
+    form = LeaveRequestForm(user=request.user)
+    success_message = ""
+
+    if request.method == "POST":
+        form = LeaveRequestForm(request.POST, user=request.user)
+        if form.is_valid():
+            form.save()
+            success_message = "Leave request sent to HR."
+            form = LeaveRequestForm(user=request.user)
+
+    today = timezone.now().date()
+    leave_requests = LeaveRequest.objects.filter(user=request.user).filter(
+        models.Q(status=LeaveRequest.PENDING) |
+        models.Q(status=LeaveRequest.APPROVED, reviewed_at__date=today)
+    ).order_by("-date")
+
+    return render(request, "leave_request.html", {
+        "form": form,
+        "leave_requests": leave_requests,
+        "success_message": success_message,
+    })
 
 
 def manager_dashboard(request):
@@ -817,6 +1058,7 @@ def manager_dashboard(request):
         "ready_tasks": ready_tasks,
         "online_count": online_count,
         "anomaly_count": anomaly_count,
+        "unread_chat_count": unread_chat_count(user),
     })
 
 
@@ -931,6 +1173,7 @@ def ceo_dashboard(request):
         "ready_tasks": ready_tasks,
         "online_count": online_count,
         "anomaly_count": anomaly_count,
+        "unread_chat_count": unread_chat_count(user),
     })
 
 
@@ -1082,7 +1325,65 @@ def hr_dashboard(request):
         "employee_count": sum(1 for user in staff_users if user.role == "EMPLOYEE"),
         "online_count": sum(1 for row in attendance_rows if row["is_online"]),
         "anomaly_count": sum(1 for row in attendance_rows if row["alert"]),
+        "pending_leave_count": LeaveRequest.objects.filter(status=LeaveRequest.PENDING).count(),
+        "unread_chat_count": unread_chat_count(request.user),
         "attendance_rows": attendance_rows,
+    })
+
+
+@login_required
+def hr_leave_requests(request):
+    if request.user.role != "HR":
+        return redirect("dashboard")
+
+    if request.method == "POST":
+        leave_request = get_object_or_404(
+            LeaveRequest.objects.select_related("user", "user__profile"),
+            id=request.POST.get("leave_id"),
+            status=LeaveRequest.PENDING
+        )
+        action = request.POST.get("action")
+
+        if action == "approve":
+            leave_request.status = LeaveRequest.APPROVED
+            leave_request.reviewed_by = request.user
+            leave_request.reviewed_at = timezone.now()
+            leave_request.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+            apply_approved_leave_request(leave_request)
+            message = f"Approved leave for {leave_request.user.username}."
+            approved_payload = {
+                "id": leave_request.id,
+                "username": leave_request.user.username,
+                "date": leave_request.date.strftime("%b %d, %Y"),
+                "reviewed_by": request.user.username,
+            }
+        elif action == "reject":
+            username = leave_request.user.username
+            leave_request.delete()
+            message = f"Rejected leave for {username}."
+            approved_payload = None
+        else:
+            return JsonResponse({"success": False, "error": "Invalid action."}, status=400)
+
+        return JsonResponse({
+            "success": True,
+            "message": message,
+            "leave_id": request.POST.get("leave_id"),
+            "pending_count": LeaveRequest.objects.filter(status=LeaveRequest.PENDING).count(),
+            "approved": approved_payload,
+        })
+
+    pending_requests = LeaveRequest.objects.filter(
+        status=LeaveRequest.PENDING
+    ).select_related("user", "user__profile").order_by("date", "created_at")
+    approved_requests = LeaveRequest.objects.filter(
+        status=LeaveRequest.APPROVED,
+        reviewed_at__date=timezone.now().date()
+    ).select_related("user", "user__profile", "reviewed_by").order_by("-reviewed_at")[:20]
+
+    return render(request, "hr_leave_requests.html", {
+        "pending_requests": pending_requests,
+        "approved_requests": approved_requests,
     })
 
 
@@ -1251,7 +1552,7 @@ def hr_accountant(request):
         rows.append({
             "user": user,
             "salary": salary,
-            "net_pay": round(salary["salary_monthly"] + salary["salary_adjustment_total"], 2),
+            "net_pay": salary["net_pay"],
         })
 
     return render(request, "hr_accountant.html", {
@@ -1654,7 +1955,7 @@ def calendar_view(request):
             title = task.title
             events.append({
                 "title": title,
-                "start": task.deadline.strftime("%Y-%m-%dT%H:%M:%S"),
+                "start": localtime(task.deadline).strftime("%Y-%m-%dT%H:%M:%S"),
             })
     
     holidays = Holiday.objects.all()
@@ -1665,6 +1966,14 @@ def calendar_view(request):
             "start": holiday.date.strftime("%Y-%m-%d"),
             "allDay": True,
             "color": "#28a745"
+        })
+
+    for leave in Attendance.objects.filter(user=request.user, status="LEAVE"):
+        events.append({
+            "title": "Leave",
+            "start": leave.date.strftime("%Y-%m-%d"),
+            "allDay": True,
+            "color": "#3B82F6"
         })
 
     return render(request, "calendar.html", {
@@ -1685,7 +1994,7 @@ def manager_calendar_view(request):
         if task.deadline:
             events.append({
                 "title": f"{task.assigned_to.username}: {task.title}",
-                "start": task.deadline.strftime("%Y-%m-%dT%H:%M:%S"),
+                "start": localtime(task.deadline).strftime("%Y-%m-%dT%H:%M:%S"),
             })
 
     for holiday in Holiday.objects.all():
@@ -1694,6 +2003,14 @@ def manager_calendar_view(request):
             "start": holiday.date.strftime("%Y-%m-%d"),
             "allDay": True,
             "color": "#28a745"
+        })
+
+    for leave in Attendance.objects.filter(user__in=team_users, status="LEAVE").select_related("user"):
+        events.append({
+            "title": f"{leave.user.username}: Leave",
+            "start": leave.date.strftime("%Y-%m-%d"),
+            "allDay": True,
+            "color": "#3B82F6"
         })
 
     return render(request, "manager_calendar.html", {
@@ -1714,7 +2031,7 @@ def ceo_calendar_view(request):
         if task.deadline:
             events.append({
                 "title": f"{task.assigned_to.username}: {task.title}",
-                "start": task.deadline.strftime("%Y-%m-%dT%H:%M:%S"),
+                "start": localtime(task.deadline).strftime("%Y-%m-%dT%H:%M:%S"),
             })
 
     for holiday in Holiday.objects.all():
@@ -1723,6 +2040,14 @@ def ceo_calendar_view(request):
             "start": holiday.date.strftime("%Y-%m-%d"),
             "allDay": True,
             "color": "#28a745"
+        })
+
+    for leave in Attendance.objects.filter(user__in=managers, status="LEAVE").select_related("user"):
+        events.append({
+            "title": f"{leave.user.username}: Leave",
+            "start": leave.date.strftime("%Y-%m-%d"),
+            "allDay": True,
+            "color": "#3B82F6"
         })
 
     return render(request, "ceo_calendar.html", {

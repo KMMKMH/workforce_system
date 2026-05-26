@@ -68,7 +68,7 @@ body {
 .status-short { color: #F59E0B !important; }
 .status-absent { color: #EF4444 !important; }
 .status-leave { color: #3B82F6 !important; }
-.status-holiday { color: #6366F1 !important; }
+.status-holiday { color: #3B82F6 !important; }
 .status-overtime { color: #F97316 !important; }
 .status-offline { color: #64748B !important; }
 
@@ -253,6 +253,20 @@ body {
     align-items: center;
     gap: 8px;
     border: 1px solid #E2E8F0;
+}
+
+.chat-portal-btn {
+    position: relative;
+}
+
+.portal-alert-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.16);
+    display: inline-block;
+    flex: 0 0 auto;
 }
 
 .portal-btn:hover {

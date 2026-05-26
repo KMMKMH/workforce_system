@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard | Workforce System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
     <link
         id="themeStylesheet"
         rel="stylesheet"
@@ -104,7 +104,11 @@
     </div>
 
     <div class="portal-bar">
-        <a href="{% url 'chat' %}" class="portal-btn"><i class="fas fa-comment"></i> Chat</a>
+        <a href="{% url 'chat' %}" class="portal-btn chat-portal-btn" data-unread-status-url="{% url 'chat_unread_status' %}">
+            <i class="fas fa-comment"></i> Chat
+            {% if unread_chat_count %}<span class="portal-alert-dot" aria-label="{{ unread_chat_count }} unread chats"></span>{% endif %}
+        </a>
+        <a href="{% url 'leave_request' %}" class="portal-btn"><i class="fas fa-calendar-plus"></i> Leave</a>
         {% if show_manager_portal %}
             <a href="{% url 'manager_dashboard' %}" class="portal-btn"><i class="fas fa-users-gear"></i> Team Dashboard</a>
         {% endif %}
@@ -129,6 +133,7 @@
 <script src="{% static 'info_modal.js' %}"></script>
 <script src="{% static 'confirm_modal.js' %}"></script>
 <script src="{% static 'theme_switcher.js' %}"></script>
+<script src="{% static 'chat_notifications.js' %}"></script>
 <script src="{% static 'dashboard.js' %}"></script>
 
 </body>

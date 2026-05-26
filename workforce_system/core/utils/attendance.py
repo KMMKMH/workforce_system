@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime, time
 from django.utils import timezone
-from core.models import Attendance, Holiday, TaskCommit
+from core.models import Attendance, Holiday, LeaveRequest, TaskCommit
 
 THRESHOLD_HOURS = 7
 MAX_HOURS = 12
@@ -11,13 +11,20 @@ def is_holiday(date):
 def is_weekend(date):
     return date.weekday() in [5, 6]
 
+def is_approved_leave(user, date):
+    return LeaveRequest.objects.filter(
+        user=user,
+        date=date,
+        status=LeaveRequest.APPROVED
+    ).exists()
+
 def auto_fix_attendance(user):
     if user.role in ['CEO', 'HR', 'ACCOUNTANT']: return
     today = timezone.now().date()
 
     last_record = (
         Attendance.objects
-        .filter(user=user)
+        .filter(user=user, date__lte=today)
         .order_by('-date')
         .first()
     )
@@ -38,7 +45,9 @@ def auto_fix_attendance(user):
         ).exists()
 
         if not exists:
-            if is_holiday(current_date) or is_weekend(current_date):
+            if is_approved_leave(user, current_date):
+                status = "LEAVE"
+            elif is_holiday(current_date) or is_weekend(current_date):
                 status = "HOLIDAY"
             else:
                 status = "ABSENT"

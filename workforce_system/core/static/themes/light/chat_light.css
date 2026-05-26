@@ -179,11 +179,19 @@ body {
 }
 
 .conversation-team {
-    background: #0F766E;
+    background: #047857;
 }
 
 .conversation-meta {
     min-width: 0;
+}
+
+.conversation-title-row {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 .conversation-meta strong,
@@ -198,6 +206,7 @@ body {
 .conversation-meta strong {
     color: #0F172A;
     font-size: 0.98rem;
+    min-width: 0;
 }
 
 .conversation-meta small,
@@ -205,6 +214,20 @@ body {
     color: #64748B;
     margin-top: 3px;
     font-size: 0.85rem;
+}
+
+.chat-unread-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.16);
+    flex: 0 0 auto;
+}
+
+.conversation-item.unread .last-message,
+.conversation-item.unread .conversation-meta strong {
+    color: #0F172A;
 }
 
 .message-panel {
@@ -272,8 +295,8 @@ body {
 }
 
 .message.own .message-bubble {
-    background: #DCFCE7;
-    border-color: #BBF7D0;
+    background: #ECFDF5;
+    border-color: #A7F3D0;
     border-radius: 22px 22px 6px 22px;
 }
 

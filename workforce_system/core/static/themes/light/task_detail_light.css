@@ -75,7 +75,7 @@ body {
 .status-pending { color: #D97706; border-left: 3px solid #D97706; background: #FEF3C7; }
 .status-in_progress { color: #2563EB; border-left: 3px solid #2563EB; background: #EFF6FF; }
 .status-ready { color: #10B981; border-left: 3px solid #10B981; background: #ECFDF5; }
-.status-review { color: #8B5CF6; border-left: 3px solid #8B5CF6; background: #F3E8FF; }
+.status-review { color: #3B82F6; border-left: 3px solid #3B82F6; background: #EFF6FF; }
 .status-done { color: #059669; border-left: 3px solid #059669; background: #D1FAE5; }
 
 .task-actions {

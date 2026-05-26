@@ -7,3 +7,16 @@
 .filter-empty-message {
     margin-top: 14px;
 }
+
+.leave-portal-btn {
+    position: relative;
+}
+
+.pending-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #EF4444;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14);
+    display: inline-block;
+}

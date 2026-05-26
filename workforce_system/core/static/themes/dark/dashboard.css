@@ -66,10 +66,10 @@ body {
 
 .status-active { color: #34D399 !important; }
 .status-short { color: #F59E0B !important; }
-.status-absent { color: #F43F5E !important; }
-.status-leave { color: #60A5FA !important; }
+.status-absent { color: #FB7185 !important; }
+.status-leave { color: #818CF8 !important; }
 .status-holiday { color: #818CF8 !important; }
-.status-overtime { color: #F97316 !important; }
+.status-overtime { color: #F59E0B !important; }
 .status-offline { color: #64748B !important; }
 
 .main-area {
@@ -254,6 +254,20 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.chat-portal-btn {
+    position: relative;
+}
+
+.portal-alert-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #FB7185;
+    box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.16);
+    display: inline-block;
+    flex: 0 0 auto;
+}
+
 .portal-btn:hover {
     background: #4338CA;
     color: white;
@@ -292,7 +306,7 @@ body {
 }
 
 .logout-btn:hover {
-    background: #F43F5E;
+    background: #FB7185;
     transform: translateY(-2px);
 }
 

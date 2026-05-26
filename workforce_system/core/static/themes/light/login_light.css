@@ -110,22 +110,17 @@ body {
     transform: scale(1.01);
 }
 
-.apply-link {
+.help-message {
     margin-top: 20px;
     font-size: 13px;
     color: #64748B;
 }
 
-.apply-link a {
+.help-message span {
     color: #10B981;
     text-decoration: none;
     font-weight: 500;
     transition: color 0.2s;
-}
-
-.apply-link a:hover {
-    color: #059669;
-    text-decoration: underline;
 }
 
 .error-alert {

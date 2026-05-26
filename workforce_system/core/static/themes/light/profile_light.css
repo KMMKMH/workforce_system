@@ -311,8 +311,8 @@ input:focus, textarea:focus {
 }
 
 .btn.biometric-toggle-btn.toggle-disable:hover {
-    background: #B91010;
-    border-color: #B91010;
+    background: #DC2626;
+    border-color: #DC2626;
     color: #FFFFFF;
     filter: none;
 }
