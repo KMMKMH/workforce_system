@@ -14,7 +14,8 @@ def is_weekend(date):
 def is_approved_leave(user, date):
     return LeaveRequest.objects.filter(
         user=user,
-        date=date,
+        date__lte=date,
+        end_date__gte=date,
         status=LeaveRequest.APPROVED
     ).exists()
 

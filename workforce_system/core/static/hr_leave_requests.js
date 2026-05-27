@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <article class="request-card approved-card">
                 <div class="request-main">
                     <strong>${escapeHTML(approved.username)}</strong>
-                    <span>${escapeHTML(approved.date)} - approved by ${escapeHTML(approved.reviewed_by)}</span>
+                    <span>${escapeHTML(approved.period)} - approved by ${escapeHTML(approved.reviewed_by)}</span>
                 </div>
                 <span class="status-pill">Approved</span>
             </article>

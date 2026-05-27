@@ -252,6 +252,9 @@ class PayrollBonusForm(forms.ModelForm):
     class Meta:
         model = PayrollAdjustment
         fields = ["user", "amount", "reason", "month"]
+        labels = {
+            "amount": "Adjustment Amount",
+        }
         widgets = {
             "reason": forms.Textarea(attrs={"rows": 4}),
         }
@@ -264,7 +267,6 @@ class PayrollBonusForm(forms.ModelForm):
             is_active=True
         ).order_by("username")
         self.fields["user"].empty_label = "Select staff member"
-        self.fields["amount"].min_value = 0.01
         self.fields["month"].widget.attrs["min"] = current_month.strftime("%Y-%m")
 
         for field in self.fields.values():
@@ -275,13 +277,25 @@ class PayrollBonusForm(forms.ModelForm):
         current_month = timezone.now().date().replace(day=1)
 
         if month < current_month:
-            raise forms.ValidationError("Bonuses can only be added for the current month or future months.")
+            raise forms.ValidationError("Adjustments can only be added for the current month or future months.")
 
         return month
 
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+
+        if amount == 0:
+            raise forms.ValidationError("Adjustment amount cannot be zero.")
+
+        return amount
+
     def save(self, commit=True, created_by=None):
         adjustment = super().save(commit=False)
-        adjustment.adjustment_type = PayrollAdjustment.BONUS
+        adjustment.adjustment_type = (
+            PayrollAdjustment.DEDUCTION
+            if adjustment.amount < 0
+            else PayrollAdjustment.BONUS
+        )
 
         if created_by:
             adjustment.created_by = created_by
@@ -295,9 +309,14 @@ class PayrollBonusForm(forms.ModelForm):
 class LeaveRequestForm(forms.ModelForm):
     class Meta:
         model = LeaveRequest
-        fields = ["date", "reason"]
+        fields = ["date", "end_date", "reason"]
+        labels = {
+            "date": "Start Date",
+            "end_date": "End Date",
+        }
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
             "reason": forms.Textarea(attrs={"rows": 4, "placeholder": "Reason for leave"}),
         }
 
@@ -306,24 +325,62 @@ class LeaveRequestForm(forms.ModelForm):
         self.user = user
         tomorrow = timezone.now().date() + timezone.timedelta(days=1)
         self.fields["date"].widget.attrs["min"] = tomorrow.strftime("%Y-%m-%d")
+        self.fields["end_date"].widget.attrs["min"] = tomorrow.strftime("%Y-%m-%d")
 
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-control")
 
-    def clean_date(self):
-        leave_date = self.cleaned_data["date"]
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get("date")
+        end_date = cleaned_data.get("end_date") or start_date
         tomorrow = timezone.now().date() + timezone.timedelta(days=1)
 
-        if leave_date < tomorrow:
-            raise forms.ValidationError("Leave requests can only be made for tomorrow or future dates.")
+        if not start_date:
+            return cleaned_data
 
-        if leave_date.weekday() in [5, 6] or Holiday.objects.filter(date=leave_date).exists():
-            raise forms.ValidationError("This day is already a non-working day.")
+        range_is_valid = True
+        if start_date < tomorrow:
+            self.add_error("date", "Leave requests can only be made for tomorrow or future dates.")
+            range_is_valid = False
 
-        if self.user and LeaveRequest.objects.filter(user=self.user, date=leave_date).exists():
-            raise forms.ValidationError("You already have a leave request for this date.")
+        if end_date < start_date:
+            self.add_error("end_date", "End date cannot be before the start date.")
+            range_is_valid = False
 
-        return leave_date
+        if (end_date - start_date).days > 30:
+            self.add_error("end_date", "Leave requests can be at most 1 month long.")
+            range_is_valid = False
+
+        if range_is_valid:
+            holidays = set(
+                Holiday.objects.filter(
+                    date__gte=start_date,
+                    date__lte=end_date
+                ).values_list("date", flat=True)
+            )
+            cursor = start_date
+            has_working_day = False
+            while cursor <= end_date:
+                if cursor.weekday() < 5 and cursor not in holidays:
+                    has_working_day = True
+                    break
+                cursor += timezone.timedelta(days=1)
+
+            if not has_working_day:
+                raise forms.ValidationError("The selected period is already non-working days.")
+
+        if self.user and range_is_valid:
+            overlaps = LeaveRequest.objects.filter(
+                user=self.user,
+                date__lte=end_date,
+                end_date__gte=start_date,
+            )
+            if overlaps.exists():
+                raise forms.ValidationError("You already have a leave request overlapping this period.")
+
+        cleaned_data["end_date"] = end_date
+        return cleaned_data
 
     def save(self, commit=True):
         leave_request = super().save(commit=False)

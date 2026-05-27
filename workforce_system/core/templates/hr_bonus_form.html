@@ -19,7 +19,7 @@
     <section class="bonus-panel">
         <div class="section-header">
             <h2><i class="fas fa-circle-plus"></i> {{ mode }}</h2>
-            <p>Record a payroll bonus for the selected staff member and month.</p>
+            <p>Record a payroll adjustment for the selected staff member and month.</p>
         </div>
 
         <form method="POST" class="bonus-form">
@@ -31,7 +31,7 @@
                     {% if form.user.errors %}<div class="field-error">{{ form.user.errors }}</div>{% endif %}
                 </div>
                 <div class="field-block">
-                    <label for="{{ form.amount.id_for_label }}">Bonus Amount</label>
+                    <label for="{{ form.amount.id_for_label }}">Adjustment Amount</label>
                     <div class="amount-field">
                         <span>$</span>
                         {{ form.amount }}
@@ -57,7 +57,7 @@
 
             <div class="form-actions">
                 <button type="submit" class="primary-btn">
-                    <i class="fas fa-save"></i> Save Bonus
+                    <i class="fas fa-save"></i> Save Adjustment
                 </button>
                 <a href="{% url 'hr_accountant' %}?month={{ selected_month }}" class="secondary-btn">
                     Cancel

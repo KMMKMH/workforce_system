@@ -17,7 +17,7 @@
     <section class="leave-panel">
         <div class="section-header">
             <h1><i class="fas fa-calendar-plus"></i> Request Leave</h1>
-            <p>Send HR a day-off request for tomorrow or later. Approved leave is treated as a paid non-working day.</p>
+            <p>Send HR a leave request for tomorrow or later. Approved leave is treated as paid non-working time.</p>
         </div>
 
         {% if success_message %}
@@ -28,9 +28,14 @@
             {% csrf_token %}
             <div class="form-grid">
                 <div>
-                    <label for="{{ form.date.id_for_label }}">Leave Date</label>
+                    <label for="{{ form.date.id_for_label }}">Start Date</label>
                     {{ form.date }}
                     {% if form.date.errors %}<div class="field-error">{{ form.date.errors }}</div>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.end_date.id_for_label }}">End Date</label>
+                    {{ form.end_date }}
+                    {% if form.end_date.errors %}<div class="field-error">{{ form.end_date.errors }}</div>{% endif %}
                 </div>
             </div>
 
@@ -53,7 +58,9 @@
             {% for leave in leave_requests %}
                 <article class="leave-card">
                     <div>
-                        <strong>{{ leave.date|date:"M d, Y" }}</strong>
+                        <strong>
+                            {{ leave.date|date:"M d, Y" }}{% if leave.end_date != leave.date %} - {{ leave.end_date|date:"M d, Y" }}{% endif %}
+                        </strong>
                         <span>{{ leave.reason|default:"No reason provided" }}</span>
                     </div>
                     <span class="status-pill status-{{ leave.status|lower }}">{{ leave.get_status_display }}</span>

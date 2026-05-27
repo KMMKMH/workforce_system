@@ -136,6 +136,7 @@ class LeaveRequest(models.Model):
         related_name="leave_requests"
     )
     date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
     reason = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
     reviewed_by = models.ForeignKey(
@@ -157,15 +158,17 @@ class LeaveRequest(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.date} - {self.get_status_display()}"
+        return f"{self.user.username} - {self.date} to {self.end_date or self.date} - {self.get_status_display()}"
 
 
 class PayrollAdjustment(models.Model):
 
     BONUS = "BONUS"
+    DEDUCTION = "DEDUCTION"
 
     TYPE_CHOICES = [
         (BONUS, "Bonus"),
+        (DEDUCTION, "Deduction"),
     ]
 
     user = models.ForeignKey(

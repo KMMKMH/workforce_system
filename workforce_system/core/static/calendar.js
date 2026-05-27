@@ -18,8 +18,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return [];
         },
         eventDidMount: function (info) {
-            info.el.setAttribute('title', info.event.title);
-            info.el.setAttribute('aria-label', info.event.title);
+            const props = info.event.extendedProps || {};
+            const eventTitle = props.title || info.event.title;
+            const eventStatus = props.status ? `: ${props.status}` : "";
+            info.el.setAttribute('title', `${eventTitle}${eventStatus}`);
+            info.el.setAttribute('aria-label', `${eventTitle}${eventStatus}`);
         }
     });
 

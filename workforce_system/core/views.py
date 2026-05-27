@@ -129,6 +129,32 @@ def filter_tasks_by_status(tasks, selected_status):
     return tasks.filter(status=selected_status)
 
 
+def task_calendar_event(task, title):
+    TASK_CALENDAR_STATUS_STYLES = {
+        "PENDING": {"color": "#64748b"},
+        "IN_PROGRESS": {"color": "#f97316"},
+        "READY": {"color": "#0891b2"},
+        "REVIEW": {"color": "#9333ea"},
+        "DONE": {"color": "#0f766e"},
+    }
+
+    status_style = TASK_CALENDAR_STATUS_STYLES.get(task.status, {})
+    deadline = localtime(task.deadline).strftime("%Y-%m-%dT%H:%M:%S")
+    deadline_time = localtime(task.deadline).strftime("%H:%M")
+    display = f"{deadline_time} {title}"
+
+    return {
+        "title": display,
+        "start": deadline,
+        "allDay": True,
+        "extendedProps": {
+            "title": title,
+            "status": task.status
+        },
+        **status_style
+    }
+
+
 def direct_chat_contacts(user):
     active_users = User.objects.filter(
         is_active=True,
@@ -400,15 +426,57 @@ def chat_last_message_payload(conversation, user):
 
 
 def apply_approved_leave_request(leave_request):
-    attendance, _ = Attendance.objects.get_or_create(
-        user=leave_request.user,
-        date=leave_request.date
+    leave_end = leave_request.end_date or leave_request.date
+    holidays = set(
+        Holiday.objects.filter(
+            date__gte=leave_request.date,
+            date__lte=leave_end
+        ).values_list("date", flat=True)
     )
-    attendance.status = "LEAVE"
-    attendance.is_anomaly = False
-    attendance.anomaly_reason = ""
-    attendance.save()
-    return attendance
+    cursor = leave_request.date
+    attendance_rows = []
+
+    while cursor <= leave_end:
+        if cursor.weekday() < 5 and cursor not in holidays:
+            attendance, _ = Attendance.objects.get_or_create(
+                user=leave_request.user,
+                date=cursor
+            )
+            attendance.status = "LEAVE"
+            attendance.is_anomaly = False
+            attendance.anomaly_reason = ""
+            attendance.save()
+            attendance_rows.append(attendance)
+
+        cursor += timedelta(days=1)
+
+    return attendance_rows
+
+
+def leave_period_display(leave_request, date_format="%b %d, %Y"):
+    leave_end = leave_request.end_date or leave_request.date
+    start = leave_request.date.strftime(date_format)
+    end = leave_end.strftime(date_format)
+
+    if leave_request.date == leave_end:
+        return start
+
+    return f"{start} - {end}"
+
+
+def leave_calendar_event(leave_request, title):
+    leave_end = leave_request.end_date or leave_request.date
+    return {
+        "title": title,
+        "start": leave_request.date.strftime("%Y-%m-%d"),
+        "end": (leave_end + timedelta(days=1)).strftime("%Y-%m-%d"),
+        "allDay": True,
+        "color": "#3B82F6",
+        "extendedProps": {
+            "title": title,
+            "status": leave_period_display(leave_request),
+        },
+    }
 
 
 @login_required
@@ -575,8 +643,14 @@ def calculate_salary_adjustment(user, attendance, month_start, month_end):
         month=month_start
     ).aggregate(Sum("amount"))["amount__sum"] or 0
     bonus_total = float(bonus_total)
+    payroll_deduction_total = PayrollAdjustment.objects.filter(
+        user=user,
+        adjustment_type=PayrollAdjustment.DEDUCTION,
+        month=month_start
+    ).aggregate(Sum("amount"))["amount__sum"] or 0
+    payroll_deduction_total = abs(float(payroll_deduction_total))
 
-    deductions = pre_join_deduction + absence_deduction + short_hours_deduction
+    deductions = pre_join_deduction + absence_deduction + short_hours_deduction + payroll_deduction_total
     additions = holiday_overtime_addition + bonus_total
     net_adjustment = additions - deductions
     net_pay = salary + net_adjustment
@@ -600,6 +674,7 @@ def calculate_salary_adjustment(user, attendance, month_start, month_end):
         "salary_additions": round(additions, 2),
         "holiday_overtime_addition": round(holiday_overtime_addition, 2),
         "bonus_total": round(bonus_total, 2),
+        "payroll_deduction_total": round(payroll_deduction_total, 2),
         "salary_adjustment_total": round(net_adjustment, 2),
         "salary_adjustment_display": f"{'+' if net_adjustment >= 0 else '-'}${abs(net_adjustment):.2f}",
         "salary_adjustment_class": salary_status_class,
@@ -674,6 +749,15 @@ def month_datetime_bounds(month_start, month_end):
     )
 
     return month_start_datetime, month_end_datetime
+
+
+def local_day_bounds(day=None):
+    local_tz = timezone.get_current_timezone()
+    day = day or timezone.localdate()
+    day_start = timezone.make_aware(datetime.combine(day, time.min), local_tz)
+    next_day_start = day_start + timedelta(days=1)
+
+    return day_start, next_day_start
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -970,10 +1054,14 @@ def leave_request_view(request):
             success_message = "Leave request sent to HR."
             form = LeaveRequestForm(user=request.user)
 
-    today = timezone.now().date()
+    today_start, tomorrow_start = local_day_bounds()
     leave_requests = LeaveRequest.objects.filter(user=request.user).filter(
         models.Q(status=LeaveRequest.PENDING) |
-        models.Q(status=LeaveRequest.APPROVED, reviewed_at__date=today)
+        models.Q(
+            status=LeaveRequest.APPROVED,
+            reviewed_at__gte=today_start,
+            reviewed_at__lt=tomorrow_start
+        )
     ).order_by("-date")
 
     return render(request, "leave_request.html", {
@@ -1354,7 +1442,7 @@ def hr_leave_requests(request):
             approved_payload = {
                 "id": leave_request.id,
                 "username": leave_request.user.username,
-                "date": leave_request.date.strftime("%b %d, %Y"),
+                "period": leave_period_display(leave_request),
                 "reviewed_by": request.user.username,
             }
         elif action == "reject":
@@ -1375,10 +1463,12 @@ def hr_leave_requests(request):
 
     pending_requests = LeaveRequest.objects.filter(
         status=LeaveRequest.PENDING
-    ).select_related("user", "user__profile").order_by("date", "created_at")
+    ).select_related("user", "user__profile").order_by("date", "end_date", "created_at")
+    today_start, tomorrow_start = local_day_bounds()
     approved_requests = LeaveRequest.objects.filter(
         status=LeaveRequest.APPROVED,
-        reviewed_at__date=timezone.now().date()
+        reviewed_at__gte=today_start,
+        reviewed_at__lt=tomorrow_start
     ).select_related("user", "user__profile", "reviewed_by").order_by("-reviewed_at")[:20]
 
     return render(request, "hr_leave_requests.html", {
@@ -1583,14 +1673,14 @@ def hr_add_bonus(request):
         form = PayrollBonusForm(request.POST)
 
         if form.is_valid():
-            bonus = form.save(created_by=request.user)
-            return redirect(f"{reverse('hr_accountant')}?month={bonus.month.strftime('%Y-%m')}")
+            adjustment = form.save(created_by=request.user)
+            return redirect(f"{reverse('hr_accountant')}?month={adjustment.month.strftime('%Y-%m')}")
     else:
         form = PayrollBonusForm(initial=initial)
 
     return render(request, "hr_bonus_form.html", {
         "form": form,
-        "mode": "Add Bonus",
+        "mode": "Add Adjustment",
         "selected_month": selected_month,
     })
 
@@ -1601,7 +1691,7 @@ def hr_attendance_calendar(request):
         return redirect("calendar")
 
     events = []
-    for attendance in Attendance.objects.filter(user__role__in=["MANAGER", "EMPLOYEE"]).select_related("user"):
+    for attendance in Attendance.objects.filter(user__role__in=["MANAGER", "EMPLOYEE"]).exclude(status="LEAVE").select_related("user"):
         status = STATUS_DISPLAY.get(attendance.status, attendance.status or "Attendance")
         anomaly_reason = attendance.anomaly_reason or "Attendance anomaly detected."
         base_color = {
@@ -1625,6 +1715,12 @@ def hr_attendance_calendar(request):
                 "status": status,
             },
         })
+
+    for leave in LeaveRequest.objects.filter(
+        user__role__in=["MANAGER", "EMPLOYEE"],
+        status=LeaveRequest.APPROVED
+    ).select_related("user"):
+        events.append(leave_calendar_event(leave, f"{leave.user.username}: Leave"))
 
     for holiday in Holiday.objects.all():
         events.append({
@@ -1952,11 +2048,7 @@ def calendar_view(request):
     events = []
     for task in tasks:
         if task.deadline:
-            title = task.title
-            events.append({
-                "title": title,
-                "start": localtime(task.deadline).strftime("%Y-%m-%dT%H:%M:%S"),
-            })
+            events.append(task_calendar_event(task, task.title))
     
     holidays = Holiday.objects.all()
 
@@ -1968,13 +2060,8 @@ def calendar_view(request):
             "color": "#28a745"
         })
 
-    for leave in Attendance.objects.filter(user=request.user, status="LEAVE"):
-        events.append({
-            "title": "Leave",
-            "start": leave.date.strftime("%Y-%m-%d"),
-            "allDay": True,
-            "color": "#3B82F6"
-        })
+    for leave in LeaveRequest.objects.filter(user=request.user, status=LeaveRequest.APPROVED):
+        events.append(leave_calendar_event(leave, "Leave"))
 
     return render(request, "calendar.html", {
         "events_json": json.dumps(events)
@@ -1992,10 +2079,7 @@ def manager_calendar_view(request):
     events = []
     for task in tasks:
         if task.deadline:
-            events.append({
-                "title": f"{task.assigned_to.username}: {task.title}",
-                "start": localtime(task.deadline).strftime("%Y-%m-%dT%H:%M:%S"),
-            })
+            events.append(task_calendar_event(task, f"{task.assigned_to.username}: {task.title}"))
 
     for holiday in Holiday.objects.all():
         events.append({
@@ -2005,13 +2089,11 @@ def manager_calendar_view(request):
             "color": "#28a745"
         })
 
-    for leave in Attendance.objects.filter(user__in=team_users, status="LEAVE").select_related("user"):
-        events.append({
-            "title": f"{leave.user.username}: Leave",
-            "start": leave.date.strftime("%Y-%m-%d"),
-            "allDay": True,
-            "color": "#3B82F6"
-        })
+    for leave in LeaveRequest.objects.filter(
+        user__in=team_users,
+        status=LeaveRequest.APPROVED
+    ).select_related("user"):
+        events.append(leave_calendar_event(leave, f"{leave.user.username}: Leave"))
 
     return render(request, "manager_calendar.html", {
         "events_json": json.dumps(events)
@@ -2029,10 +2111,7 @@ def ceo_calendar_view(request):
     events = []
     for task in tasks:
         if task.deadline:
-            events.append({
-                "title": f"{task.assigned_to.username}: {task.title}",
-                "start": localtime(task.deadline).strftime("%Y-%m-%dT%H:%M:%S"),
-            })
+            events.append(task_calendar_event(task, f"{task.assigned_to.username}: {task.title}"))
 
     for holiday in Holiday.objects.all():
         events.append({
@@ -2042,13 +2121,11 @@ def ceo_calendar_view(request):
             "color": "#28a745"
         })
 
-    for leave in Attendance.objects.filter(user__in=managers, status="LEAVE").select_related("user"):
-        events.append({
-            "title": f"{leave.user.username}: Leave",
-            "start": leave.date.strftime("%Y-%m-%d"),
-            "allDay": True,
-            "color": "#3B82F6"
-        })
+    for leave in LeaveRequest.objects.filter(
+        user__in=managers,
+        status=LeaveRequest.APPROVED
+    ).select_related("user"):
+        events.append(leave_calendar_event(leave, f"{leave.user.username}: Leave"))
 
     return render(request, "ceo_calendar.html", {
         "events_json": json.dumps(events)

@@ -38,7 +38,9 @@
                     </div>
                     <div class="request-date">
                         <i class="fas fa-calendar-day"></i>
-                        <strong>{{ leave.date|date:"M d, Y" }}</strong>
+                        <strong>
+                            {{ leave.date|date:"M d, Y" }}{% if leave.end_date != leave.date %} - {{ leave.end_date|date:"M d, Y" }}{% endif %}
+                        </strong>
                         <span>Requested {{ leave.created_at|date:"M d, H:i" }}</span>
                     </div>
                     <div class="request-actions">
@@ -66,7 +68,9 @@
                 <article class="request-card approved-card">
                     <div class="request-main">
                         <strong>{{ leave.user.username }}</strong>
-                        <span>{{ leave.date|date:"M d, Y" }}{% if leave.reviewed_by %} - approved by {{ leave.reviewed_by.username }}{% endif %}</span>
+                        <span>
+                            {{ leave.date|date:"M d, Y" }}{% if leave.end_date != leave.date %} - {{ leave.end_date|date:"M d, Y" }}{% endif %}{% if leave.reviewed_by %} - approved by {{ leave.reviewed_by.username }}{% endif %}
+                        </span>
                     </div>
                     <span class="status-pill">Approved</span>
                 </article>
