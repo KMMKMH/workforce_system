@@ -289,7 +289,6 @@ input:focus, textarea:focus {
     }
 }
 
-/* Biometric toggle – dark theme */
 .biometric-toggle-form {
     margin: 0;
 }
@@ -333,7 +332,6 @@ input:focus, textarea:focus {
     transform: none;
 }
 
-/* CV section – dark theme */
 .cv-current {
     margin-bottom: 18px;
 }

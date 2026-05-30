@@ -81,13 +81,13 @@
                 <label for="{{ task_form.description.id_for_label }}">Description</label>
                 {{ task_form.description }}
 
-                <label>Initial Screenshots</label>
+                <label>Initial Images</label>
                 <div class="initial-image-picker">
-                    <label for="managerInitialScreenshots" class="image-picker-btn">
-                        <i class="fas fa-images"></i> Choose screenshots
+                    <label for="managerInitialimages" class="image-picker-btn">
+                        <i class="fas fa-images"></i> Choose images
                     </label>
-                    <input id="managerInitialScreenshots" class="initial-image-input" type="file" name="initial_images" accept="image/*" multiple>
-                    <div class="selected-image-list" data-empty-text="No screenshots selected">No screenshots selected</div>
+                    <input id="managerInitialimages" class="initial-image-input" type="file" name="initial_images" accept="image/*" multiple>
+                    <div class="selected-image-list" data-empty-text="No images selected">No images selected</div>
                 </div>
 
                 {% if task_form.errors %}
@@ -265,7 +265,7 @@
     </div>
 
     <div class="footer">
-        <i class="fas fa-building"></i> Coftech Workforce System 2026
+        <i class="fas fa-building"></i> Coftech © Workforce System 2026
     </div>
 </div>
 

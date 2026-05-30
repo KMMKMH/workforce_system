@@ -65,6 +65,7 @@ body {
     font-size: 12px;
 }
 
+/* Weekend cells – light coral tint */
 .weekend-cell {
     background: linear-gradient(135deg, #FEF2F2 0%, #EFF6FF 100%) !important;
     border-left: 2px solid #FECACA;
@@ -91,6 +92,7 @@ h2 i {
     color: #10B981;
 }
 
+/* FullCalendar overrides */
 .fc {
     --fc-border-color: #E2E8F0;
     --fc-button-bg-color: #10B981;

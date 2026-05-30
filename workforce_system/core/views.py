@@ -1877,7 +1877,7 @@ def add_task_images(request, task_id):
     if not user_can_upload_task_image(request.user, task):
         return JsonResponse({
             "success": False,
-            "error": "You cannot upload screenshots for this task right now."
+            "error": "You cannot upload images for this task right now."
         }, status=403)
 
     files = request.FILES.getlist("images")
@@ -1885,7 +1885,7 @@ def add_task_images(request, task_id):
     if not files:
         return JsonResponse({
             "success": False,
-            "error": "Please choose at least one screenshot."
+            "error": "Please choose at least one image."
         }, status=400)
 
     uploaded_images = []
@@ -1925,7 +1925,7 @@ def delete_task_image(request, image_id):
     if not user_can_delete_task_image(request.user, task_image):
         return JsonResponse({
             "success": False,
-            "error": "You cannot delete this screenshot."
+            "error": "You cannot delete this image."
         }, status=403)
 
     task_image.image.delete(save=False)

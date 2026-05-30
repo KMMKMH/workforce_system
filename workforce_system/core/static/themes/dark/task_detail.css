@@ -415,8 +415,7 @@ body {
     font-size: 12px;
 }
 
-/* Screenshot groups (new dark styling) */
-.screenshots-header {
+.images-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -424,7 +423,7 @@ body {
     flex-wrap: wrap;
     margin-bottom: 16px;
 }
-.screenshots-header h2 {
+.images-header h2 {
     margin: 0;
 }
 .image-upload-form {
@@ -439,7 +438,7 @@ body {
 .image-upload-form label {
     margin: 0;
 }
-.screenshot-group {
+.image-group {
     min-width: 0;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
@@ -447,14 +446,14 @@ body {
     padding: 16px;
     margin-top: 16px;
 }
-.screenshot-group-title {
+.image-group-title {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
     margin-bottom: 12px;
 }
-.screenshot-group-title h3 {
+.image-group-title h3 {
     color: #FEFBF6;
     display: flex;
     align-items: center;
@@ -462,10 +461,10 @@ body {
     font-size: 1rem;
     min-width: 0;
 }
-.screenshot-group-title h3 i {
+.image-group-title h3 i {
     color: #FB7185;
 }
-.screenshot-group-title > span {
+.image-group-title > span {
     color: #94A3B8;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -478,7 +477,7 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.screenshot-carousel {
+.image-carousel {
     min-width: 0;
     width: 100%;
     max-width: 100%;
@@ -491,20 +490,20 @@ body {
     scrollbar-width: thin;
     scrollbar-color: #475569 transparent;
 }
-.screenshot-carousel::-webkit-scrollbar {
+.image-carousel::-webkit-scrollbar {
     height: 8px;
 }
-.screenshot-carousel::-webkit-scrollbar-track {
+.image-carousel::-webkit-scrollbar-track {
     background: transparent;
 }
-.screenshot-carousel::-webkit-scrollbar-thumb {
+.image-carousel::-webkit-scrollbar-thumb {
     background: #475569;
     border-radius: 20px;
 }
-.screenshot-carousel::-webkit-scrollbar-thumb:hover {
+.image-carousel::-webkit-scrollbar-thumb:hover {
     background: #64748B;
 }
-.screenshot-carousel .task-image-card {
+.image-carousel .task-image-card {
     position: relative;
     flex: 0 0 220px;
     width: 220px;
@@ -517,12 +516,12 @@ body {
     font-family: inherit;
     transition: all 0.2s ease;
 }
-.screenshot-carousel .task-image-card:hover {
+.image-carousel .task-image-card:hover {
     border-color: #FB7185;
     transform: translateY(-2px);
     background: rgba(0, 0, 0, 0.4);
 }
-.screenshot-carousel .task-image-card img {
+.image-carousel .task-image-card img {
     width: 100%;
     height: 138px;
     object-fit: cover;
@@ -553,7 +552,7 @@ body {
     border-color: #FB7185;
     transform: scale(1.05);
 }
-.screenshot-carousel .image-meta {
+.image-carousel .image-meta {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -580,7 +579,7 @@ body {
     flex: 0 0 auto;
     white-space: nowrap;
 }
-.screenshot-carousel .empty-text {
+.image-carousel .empty-text {
     flex: 1 0 100%;
     margin: 0;
     background: transparent;
@@ -646,14 +645,14 @@ body {
     }
 }
 @media (max-width: 560px) {
-    .screenshot-group-title {
+    .image-group-title {
         align-items: flex-start;
         flex-direction: column;
     }
-    .screenshot-group-title > span {
+    .image-group-title > span {
         max-width: 100%;
     }
-    .screenshot-carousel .task-image-card {
+    .image-carousel .task-image-card {
         flex-basis: 190px;
         width: 190px;
     }

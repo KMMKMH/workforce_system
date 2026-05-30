@@ -133,7 +133,6 @@ body {
     gap: 6px;
 }
 
-/* Note: duplicate .task-card removed – keep only one */
 .task-card {
     background: #FFFFFF;
     border: 1px solid #E2E8F0;

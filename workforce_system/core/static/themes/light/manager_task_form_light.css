@@ -1,4 +1,3 @@
-/* ===== MANAGER TASK FORM – BRIGHT THEME ===== */
 * {
     margin: 0;
     padding: 0;
@@ -18,7 +17,6 @@ body {
     margin: 0 auto;
 }
 
-/* Back button */
 .back-nav {
     margin-bottom: 24px;
 }

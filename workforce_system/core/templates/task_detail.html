@@ -67,29 +67,29 @@
                 </div>
 
                 <div class="task-images-section">
-                    <div class="screenshots-header">
-                        <h2><i class="fas fa-image"></i> Screenshots</h2>
+                    <div class="images-header">
+                        <h2><i class="fas fa-image"></i> Images</h2>
                         {% if image_upload_role %}
                             <form id="taskImageForm" class="image-upload-form {% if not can_upload_images %}hidden-upload{% endif %}" data-task-id="{{ task.id }}" data-target-role="{{ image_upload_role }}" enctype="multipart/form-data">
                                 <label for="taskImagesInput" class="task-btn task-start">
-                                    <i class="fas fa-upload"></i> Add Screenshots
+                                    <i class="fas fa-upload"></i> Add Images
                                 </label>
                                 <input id="taskImagesInput" type="file" name="images" accept="image/*" multiple>
                             </form>
                         {% endif %}
                     </div>
 
-                    <div class="screenshot-group">
-                        <div class="screenshot-group-title">
-                            <h3><i class="fas fa-user-shield"></i> Assigner Screenshots</h3>
+                    <div class="image-group">
+                        <div class="image-group-title">
+                            <h3><i class="fas fa-user-shield"></i> Assigner Images</h3>
                             <span>{{ task.assigned_by.username }}</span>
                         </div>
-                        <div class="screenshot-carousel" id="assignerImageCarousel">
+                        <div class="image-carousel" id="assignerImageCarousel">
                             {% for image in assigner_images %}
                                 <button type="button" class="task-image-card" data-full="{{ image.image.url }}" data-image-id="{{ image.id }}">
-                                    <img src="{{ image.image.url }}" alt="Assigner screenshot">
+                                    <img src="{{ image.image.url }}" alt="Assigner image">
                                     {% if image.uploaded_by == request.user %}
-                                        <span class="delete-image-btn" data-image-id="{{ image.id }}" title="Delete screenshot">
+                                        <span class="delete-image-btn" data-image-id="{{ image.id }}" title="Delete image">
                                             <i class="fas fa-times"></i>
                                         </span>
                                     {% endif %}
@@ -99,22 +99,22 @@
                                     </span>
                                 </button>
                             {% empty %}
-                                <p class="empty-text"><i class="fas fa-folder-open"></i> No assigner screenshots yet.</p>
+                                <p class="empty-text"><i class="fas fa-folder-open"></i> No assigner images yet.</p>
                             {% endfor %}
                         </div>
                     </div>
 
-                    <div class="screenshot-group">
-                        <div class="screenshot-group-title">
-                            <h3><i class="fas fa-user"></i> Assignee Screenshots</h3>
+                    <div class="image-group">
+                        <div class="image-group-title">
+                            <h3><i class="fas fa-user"></i> Assignee Images</h3>
                             <span>{{ task.assigned_to.username }}</span>
                         </div>
-                        <div class="screenshot-carousel" id="assigneeImageCarousel">
+                        <div class="image-carousel" id="assigneeImageCarousel">
                             {% for image in assignee_images %}
                                 <button type="button" class="task-image-card" data-full="{{ image.image.url }}" data-image-id="{{ image.id }}">
-                                    <img src="{{ image.image.url }}" alt="Assignee screenshot">
+                                    <img src="{{ image.image.url }}" alt="Assignee image">
                                     {% if image.uploaded_by == request.user %}
-                                        <span class="delete-image-btn" data-image-id="{{ image.id }}" title="Delete screenshot">
+                                        <span class="delete-image-btn" data-image-id="{{ image.id }}" title="Delete image">
                                             <i class="fas fa-times"></i>
                                         </span>
                                     {% endif %}
@@ -124,7 +124,7 @@
                                     </span>
                                 </button>
                             {% empty %}
-                                <p class="empty-text"><i class="fas fa-folder-open"></i> No assignee screenshots yet.</p>
+                                <p class="empty-text"><i class="fas fa-folder-open"></i> No assignee images yet.</p>
                             {% endfor %}
                         </div>
                     </div>
@@ -192,7 +192,7 @@
         <button type="button" class="lightbox-close" id="lightboxClose">
             <i class="fas fa-times"></i>
         </button>
-        <img id="lightboxImage" src="" alt="Task screenshot preview">
+        <img id="lightboxImage" src="" alt="Task image preview">
     </div>
 
     <script src="{% static 'confirm_modal.js' %}"></script>
