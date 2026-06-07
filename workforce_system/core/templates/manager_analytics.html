@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/manager_analytics_light.css' %}{% else %}{% static 'themes/dark/manager_analytics.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/manager_analytics.css' %}" data-light-theme="{% static 'themes/light/manager_analytics_light.css' %}">
     {% include "components/theme_bootstrap.html" %}
 </head>
-<body class="analytics-body">
+<body class="analytics-body" data-analytics-page="manager" data-anomalies-url="{% url 'manager_anomalies' %}">
 <div class="analytics-page">
     <div class="back-nav">
         <a href="{% url 'manager_dashboard' %}" class="back-btn">
@@ -26,7 +26,7 @@
                 Month
             </label>
 
-            <select id="monthSelect" name="month" onchange="this.form.submit()">
+            <select id="monthSelect" name="month">
                 {% for month in months %}
                     <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
                         {{ month.label }}
@@ -36,7 +36,7 @@
         </div>
 
         <div class="selected-month-pill">
-            Viewing: <strong>{{ selected_month_label }}</strong>
+            Viewing: <strong id="selectedMonthLabel">{{ selected_month_label }}</strong>
         </div>
     </form>
 
@@ -44,64 +44,54 @@
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-users"></i></div>
             <div class="stat-info">
-                <span class="stat-value">{{ team_count }}</span>
+                <span class="stat-value" id="subjectCount">{{ team_count }}</span>
                 <span class="stat-label">Employees</span>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-clock"></i></div>
             <div class="stat-info">
-                <span class="stat-value">{{ total_hours }}</span>
+                <span class="stat-value" id="totalHours">{{ total_hours }}</span>
                 <span class="stat-label">Total Hours</span>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-business-time"></i></div>
             <div class="stat-info">
-                <span class="stat-value">{{ avg_hours }}</span>
+                <span class="stat-value" id="avgHours">{{ avg_hours }}</span>
                 <span class="stat-label">Avg Hours / Day</span>
             </div>
         </div>
-        {% if anomalies %}
-            <a href="{% url 'manager_anomalies' %}?month={{ selected_month }}" class="stat-card-link">
-                <div class="stat-card anomaly-card has-anomalies">
-                    <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
-                    <div class="stat-info">
-                        <span class="stat-value">{{ anomalies }}</span>
-                        <span class="stat-label">Anomalies</span>
-                    </div>
-                    <div class="click-hint"><i class="fas fa-chevron-right"></i></div>
-                </div>
-            </a>
-        {% else %}
-            <div class="stat-card anomaly-card no-anomalies">
-                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <a href="{% url 'manager_anomalies' %}?month={{ selected_month }}" class="stat-card-link" id="anomaliesLink">
+            <div class="stat-card anomaly-card {% if anomalies %}has-anomalies{% else %}no-anomalies{% endif %}" id="anomaliesCard">
+                <div class="stat-icon"><i id="anomaliesIcon" class="fas {% if anomalies %}fa-triangle-exclamation{% else %}fa-check-circle{% endif %}"></i></div>
                 <div class="stat-info">
-                    <span class="stat-value">0</span>
+                    <span class="stat-value" id="anomalies">{{ anomalies }}</span>
                     <span class="stat-label">Anomalies</span>
                 </div>
+                <div class="click-hint" id="anomaliesHint" {% if not anomalies %}hidden{% endif %}><i class="fas fa-chevron-right"></i></div>
             </div>
-        {% endif %}
+        </a>
     </div>
 
     <div class="analytics-grid">
         <div class="card">
             <h2><i class="fas fa-tasks"></i> Team Task Progress</h2>
             <div class="manager-metric-list">
-                <div><span>Completed</span><strong>{{ completed }} / {{ total_tasks }}</strong></div>
-                <div><span>Ready for review</span><strong>{{ ready }}</strong></div>
-                <div><span>In progress</span><strong>{{ in_progress }}</strong></div>
-                <div><span>Pending</span><strong>{{ pending }}</strong></div>
-                <div><span>Completion rate</span><strong>{{ completion_rate }}%</strong></div>
+                <div><span>Completed</span><strong id="completedValue">{{ completed }} / {{ total_tasks }}</strong></div>
+                <div><span>Ready for review</span><strong id="readyValue">{{ ready }}</strong></div>
+                <div><span>In progress</span><strong id="inProgressValue">{{ in_progress }}</strong></div>
+                <div><span>Pending</span><strong id="pendingValue">{{ pending }}</strong></div>
+                <div><span>Completion rate</span><strong id="completionRate">{{ completion_rate }}%</strong></div>
             </div>
         </div>
 
         <div class="card">
             <h2><i class="fas fa-user-clock"></i> Attendance Summary</h2>
             <div class="manager-metric-list">
-                <div><span>Total absences</span><strong>{{ absences }}</strong></div>
-                <div><span>Average completion ratio</span><strong>{{ avg_completion_ratio }}</strong></div>
-                <div><span>Tracked tasks</span><strong>{{ total_tasks }}</strong></div>
+                <div><span>Total absences</span><strong id="absencesValue">{{ absences }}</strong></div>
+                <div><span>Average completion ratio</span><strong id="avgCompletionRatio">{{ avg_completion_ratio }}</strong></div>
+                <div><span>Tracked tasks</span><strong id="trackedTasks">{{ total_tasks }}</strong></div>
             </div>
         </div>
     </div>
@@ -127,7 +117,7 @@
                         <th>Anomalies</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="analyticsRowsBody">
                     {% for row in member_rows %}
                         <tr class="analytics-search-row" data-search="{{ row.employee.username }}">
                             <td><strong>{{ row.employee.username }}</strong></td>
@@ -150,5 +140,6 @@
 </div>
 <script src="{% static 'theme_switcher.js' %}"></script>
 <script src="{% static 'hr_table_search.js' %}"></script>
+<script src="{% static 'org_analytics.js' %}"></script>
 </body>
 </html>

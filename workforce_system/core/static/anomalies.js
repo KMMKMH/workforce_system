@@ -1,6 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
     const monthSelect = document.getElementById("monthSelect");
     const anomaliesList = document.getElementById("anomaliesList");
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+    }[char]));
 
     const setLoading = (isLoading) => {
         document.body.classList.toggle("analytics-loading", isLoading);
@@ -14,15 +21,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div>
                         <h2>
                             <i class="fas fa-calendar-day"></i>
-                            ${anomaly.date}
+                            ${escapeHtml(anomaly.date)}
                         </h2>
-                        <span class="anomaly-status status-${anomaly.status.toLowerCase()}">
-                            ${anomaly.status}
+                        <span class="anomaly-status status-${escapeHtml(anomaly.status.toLowerCase())}">
+                            ${escapeHtml(anomaly.status)}
                         </span>
                     </div>
 
                     <div class="anomaly-hours">
-                        <strong>${anomaly.worked_hours}</strong>
+                        <strong>${escapeHtml(anomaly.worked_hours)}</strong>
                         <span>hours</span>
                     </div>
                 </div>
@@ -31,19 +38,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div>
                         <i class="fas fa-sign-in-alt"></i>
                         <span>Check In</span>
-                        <strong>${anomaly.check_in}</strong>
+                        <strong>${escapeHtml(anomaly.check_in)}</strong>
                     </div>
 
                     <div>
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Check Out</span>
-                        <strong>${anomaly.check_out}</strong>
+                        <strong>${escapeHtml(anomaly.check_out)}</strong>
                     </div>
                 </div>
 
                 <div class="anomaly-reason">
                     <i class="fas fa-info-circle"></i>
-                    <p>${anomaly.reason}</p>
+                    <p>${escapeHtml(anomaly.reason)}</p>
                 </div>
             </div>
         `;
@@ -81,7 +88,15 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
 
             document.getElementById("selectedMonthLabel").textContent = data.selected_month_label;
-            document.getElementById("anomaliesCount").textContent = data.anomalies_count;
+
+            const anomaliesCount = document.getElementById("anomaliesCount");
+            if (anomaliesCount) anomaliesCount.textContent = data.anomalies_count;
+
+            const anomaliesSummary = document.getElementById("anomaliesSummary");
+            if (anomaliesSummary) anomaliesSummary.hidden = data.anomalies_count <= 0;
+
+            const backLink = document.getElementById("analyticsBackLink");
+            if (backLink) backLink.href = `/analytics/?month=${encodeURIComponent(data.selected_month)}`;
 
             if (data.anomalies.length > 0) {
                 anomaliesList.innerHTML = data.anomalies.map(buildAnomalyCard).join("");

@@ -102,26 +102,16 @@
                 <span class="stat-label">Active Days</span>
             </div>
         </div>
-        {% if anomalies > 0 %}
-            <a href="{% url 'employee_anomalies' %}?month={{ selected_month }}" class="stat-card-link" id="anomaliesLink">
-                <div class="stat-card anomaly-card has-anomalies">
-                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="anomalies">{{ anomalies }}</span>
-                        <span class="stat-label">Anomalies</span>
-                    </div>
-                    <div class="click-hint"><i class="fas fa-chevron-right"></i></div>
-                </div>
-            </a>
-        {% else %}
-            <div class="stat-card anomaly-card no-anomalies">
-                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <a href="{% url 'employee_anomalies' %}?month={{ selected_month }}" class="stat-card-link" id="anomaliesLink">
+            <div class="stat-card anomaly-card {% if anomalies > 0 %}has-anomalies{% else %}no-anomalies{% endif %}" id="anomaliesCard">
+                <div class="stat-icon"><i id="anomaliesIcon" class="fas {% if anomalies > 0 %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %}"></i></div>
                 <div class="stat-info">
-                    <span class="stat-value">0</span>
+                    <span class="stat-value" id="anomalies">{{ anomalies }}</span>
                     <span class="stat-label">Anomalies</span>
                 </div>
+                <div class="click-hint" id="anomaliesHint" {% if anomalies <= 0 %}hidden{% endif %}><i class="fas fa-chevron-right"></i></div>
             </div>
-        {% endif %}
+        </a>
     </div>
 
     <div class="analytics-grid">

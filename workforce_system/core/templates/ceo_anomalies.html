@@ -9,10 +9,10 @@
     <link rel="stylesheet" href="{% if request.COOKIES.workforceTheme == 'light' %}{% static 'themes/light/ceo_anomalies_light.css' %}{% else %}{% static 'themes/dark/ceo_anomalies.css' %}{% endif %}" data-theme-link data-dark-theme="{% static 'themes/dark/ceo_anomalies.css' %}" data-light-theme="{% static 'themes/light/ceo_anomalies_light.css' %}">
     {% include "components/theme_bootstrap.html" %}
 </head>
-<body>
+<body data-anomaly-page="manager" data-analytics-url="{% url 'ceo_analytics' %}">
 <div class="ceo-anomalies-page">
     <div class="back-nav">
-        <a href="{% url 'ceo_analytics' %}?month={{ selected_month }}" class="back-btn">
+        <a href="{% url 'ceo_analytics' %}?month={{ selected_month }}" class="back-btn" id="analyticsBackLink">
             <i class="fas fa-arrow-left"></i> Back to Managers Analytics
         </a>
     </div>
@@ -29,7 +29,7 @@
                     <i class="fas fa-calendar-alt"></i>
                     Month
                 </label>
-                <select id="monthSelect" name="month" onchange="this.form.submit()">
+                <select id="monthSelect" name="month">
                     {% for month in months %}
                         <option value="{{ month.value }}" {% if month.value == selected_month %}selected{% endif %}>
                             {{ month.label }}
@@ -47,19 +47,19 @@
     <div class="summary-grid">
         <div class="summary-card danger">
             <span>Total Anomalies</span>
-            <strong>{{ total_anomalies }}</strong>
+            <strong id="totalAnomalies">{{ total_anomalies }}</strong>
         </div>
         <div class="summary-card">
             <span>Affected Managers</span>
-            <strong>{{ affected_managers }}</strong>
+            <strong id="affectedPeople">{{ affected_managers }}</strong>
         </div>
         <div class="summary-card success">
             <span>Clear Managers</span>
-            <strong>{{ clear_managers }}</strong>
+            <strong id="clearPeople">{{ clear_managers }}</strong>
         </div>
         <div class="summary-card">
             <span>Viewing</span>
-            <strong class="summary-month">{{ selected_month_label }}</strong>
+            <strong class="summary-month" id="selectedMonthLabel">{{ selected_month_label }}</strong>
         </div>
     </div>
 
@@ -67,7 +67,7 @@
         <aside class="manager-summary-panel">
             <h2><i class="fas fa-users"></i> Managers Summary</h2>
 
-            <div class="manager-summary-list">
+            <div class="manager-summary-list" id="anomalySummaryList">
                 {% for row in manager_summaries %}
                     <div class="manager-summary-item {% if row.count %}has-issues{% endif %}" data-search="{{ row.manager.username }} {{ row.profile.position|default:'Manager' }}">
                         <div>
@@ -82,7 +82,7 @@
             </div>
         </aside>
 
-        <main class="grouped-anomalies">
+        <main class="grouped-anomalies" id="groupedAnomalies">
             {% for group in grouped_anomalies %}
                 <section class="manager-group anomaly-search-group" data-search="{{ group.manager.username }} {{ group.profile.position|default:'Manager' }} {{ group.profile.department|default:'' }} {% for anomaly in group.anomalies %} {{ anomaly.status }} {{ anomaly.anomaly_reason|default:'' }} {{ anomaly.date|date:'M d, Y' }}{% endfor %}">
                     <div class="manager-group-header">
@@ -153,5 +153,6 @@
 </div>
 <script src="{% static 'theme_switcher.js' %}"></script>
 <script src="{% static 'anomaly_search.js' %}"></script>
+<script src="{% static 'grouped_anomalies.js' %}"></script>
 </body>
 </html>

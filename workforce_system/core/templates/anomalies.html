@@ -16,7 +16,7 @@
 
 <div class="analytics-page">
     <div class="back-nav">
-        <a href="{% url 'employee_analytics' %}?month={{ selected_month }}" class="back-btn">
+        <a href="{% url 'employee_analytics' %}?month={{ selected_month }}" class="back-btn" id="analyticsBackLink">
             <i class="fas fa-arrow-left"></i> Back to Analytics
         </a>
     </div>
@@ -44,18 +44,16 @@
         </div>
     </div>
 
-    {% if anomalies_count > 0 %}
-        <div class="anomalies-summary">
-            <div class="summary-icon">
-                <i class="fas fa-bug"></i>
-            </div>
-
-            <div>
-                <span id="anomaliesCount">{{ anomalies_count }}</span>
-                <p>anomalies found this month</p>
-            </div>
+    <div class="anomalies-summary" id="anomaliesSummary" {% if anomalies_count <= 0 %}hidden{% endif %}>
+        <div class="summary-icon">
+            <i class="fas fa-bug"></i>
         </div>
-    {% endif %}
+
+        <div>
+            <span id="anomaliesCount">{{ anomalies_count }}</span>
+            <p>anomalies found this month</p>
+        </div>
+    </div>
 
     <div id="anomaliesList" class="anomalies-list">
         {% for anomaly in anomalies %}

@@ -2,11 +2,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const input = document.getElementById("anomalySearchInput");
     if (!input) return;
 
-    const groups = Array.from(document.querySelectorAll(".anomaly-search-group"));
-    const summaries = Array.from(document.querySelectorAll(".employee-summary-item, .manager-summary-item"));
-    const empty = document.getElementById("anomalySearchEmpty");
-
     function applySearch() {
+        const groups = Array.from(document.querySelectorAll(".anomaly-search-group"));
+        const summaries = Array.from(document.querySelectorAll(".employee-summary-item, .manager-summary-item"));
+        const empty = document.getElementById("anomalySearchEmpty");
         const query = input.value.trim().toLowerCase();
         let visibleGroups = 0;
 
@@ -26,6 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    window.applyAnomalySearch = applySearch;
     input.addEventListener("input", applySearch);
     applySearch();
 });

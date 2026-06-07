@@ -751,6 +751,22 @@ def month_datetime_bounds(month_start, month_end):
     return month_start_datetime, month_end_datetime
 
 
+def format_attendance_time(value):
+    return localtime(value).strftime("%H:%M") if value else "-"
+
+
+def serialize_anomaly(anomaly):
+    return {
+        "date": anomaly.date.strftime("%b %d, %Y"),
+        "status": anomaly.status,
+        "status_class": anomaly.status.lower(),
+        "check_in": format_attendance_time(anomaly.check_in),
+        "check_out": format_attendance_time(anomaly.check_out),
+        "worked_hours": round(anomaly.worked_hours or 0, 2),
+        "reason": anomaly.anomaly_reason or "No reason provided.",
+    }
+
+
 def local_day_bounds(day=None):
     local_tz = timezone.get_current_timezone()
     day = day or timezone.localdate()
@@ -1606,7 +1622,7 @@ def hr_analytics(request):
             "total_tasks": user_tasks.count(),
         })
 
-    return render(request, "hr_analytics.html", {
+    data = {
         "months": months,
         "selected_month": selected_month,
         "selected_month_label": month_start.strftime("%B %Y"),
@@ -1619,7 +1635,24 @@ def hr_analytics(request):
         "completed": completed,
         "completion_rate": round((completed / total_tasks * 100), 1) if total_tasks else 0,
         "rows": rows,
-    })
+    }
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            **{key: value for key, value in data.items() if key not in ["months", "rows"]},
+            "rows": [{
+                "name": row["user"].username,
+                "role": row["user"].get_role_display(),
+                "hours": row["hours"],
+                "completed": row["completed"],
+                "total_tasks": row["total_tasks"],
+                "absences": row["absences"],
+                "anomalies": row["anomalies"],
+                "search": f"{row['user'].username} {row['user'].get_role_display()}",
+            } for row in rows],
+        })
+
+    return render(request, "hr_analytics.html", data)
 
 
 @login_required
@@ -2198,7 +2231,7 @@ def ceo_analytics(request):
             "total_tasks": manager_tasks.count(),
         })
 
-    return render(request, "ceo_analytics.html", {
+    data = {
         "months": months,
         "selected_month": selected_month,
         "selected_month_label": month_start.strftime("%B %Y"),
@@ -2215,7 +2248,23 @@ def ceo_analytics(request):
         "completion_rate": round(completion_rate, 1),
         "avg_completion_ratio": round(avg_completion_ratio, 2),
         "manager_rows": manager_rows,
-    })
+    }
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            **{key: value for key, value in data.items() if key not in ["months", "manager_rows"]},
+            "rows": [{
+                "name": row["manager"].username,
+                "hours": row["hours"],
+                "completed": row["completed"],
+                "total_tasks": row["total_tasks"],
+                "absences": row["absences"],
+                "anomalies": row["anomalies"],
+                "search": row["manager"].username,
+            } for row in manager_rows],
+        })
+
+    return render(request, "ceo_analytics.html", data)
 
 
 @login_required
@@ -2268,7 +2317,7 @@ def ceo_anomalies(request):
             "count": manager_count,
         })
 
-    return render(request, "ceo_anomalies.html", {
+    data = {
         "months": months,
         "selected_month": selected_month,
         "selected_month_label": month_start.strftime("%B %Y"),
@@ -2278,7 +2327,28 @@ def ceo_anomalies(request):
         "clear_managers": len(managers) - affected_managers,
         "grouped_anomalies": grouped_anomalies,
         "manager_summaries": manager_summaries,
-    })
+    }
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            **{key: value for key, value in data.items() if key not in ["months", "grouped_anomalies", "manager_summaries"]},
+            "summaries": [{
+                "name": row["manager"].username,
+                "position": row["profile"].position or "Manager",
+                "count": row["count"],
+                "search": f"{row['manager'].username} {row['profile'].position or 'Manager'}",
+            } for row in manager_summaries],
+            "groups": [{
+                "name": group["manager"].username,
+                "position": group["profile"].position or "Manager",
+                "department": group["profile"].department or "",
+                "count": group["count"],
+                "hours": group["hours"],
+                "anomalies": [serialize_anomaly(anomaly) for anomaly in group["anomalies"]],
+            } for group in grouped_anomalies],
+        })
+
+    return render(request, "ceo_anomalies.html", data)
 
 
 @login_required
@@ -2506,7 +2576,7 @@ def manager_analytics(request):
             "total_tasks": employee_tasks.count(),
         })
 
-    return render(request, "manager_analytics.html", {
+    data = {
         "months": months,
         "selected_month": selected_month,
         "selected_month_label": month_start.strftime("%B %Y"),
@@ -2523,7 +2593,23 @@ def manager_analytics(request):
         "completion_rate": round(completion_rate, 1),
         "avg_completion_ratio": round(avg_completion_ratio, 2),
         "member_rows": member_rows,
-    })
+    }
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            **{key: value for key, value in data.items() if key not in ["months", "member_rows"]},
+            "rows": [{
+                "name": row["employee"].username,
+                "hours": row["hours"],
+                "completed": row["completed"],
+                "total_tasks": row["total_tasks"],
+                "absences": row["absences"],
+                "anomalies": row["anomalies"],
+                "search": row["employee"].username,
+            } for row in member_rows],
+        })
+
+    return render(request, "manager_analytics.html", data)
 
 
 @login_required
@@ -2574,7 +2660,7 @@ def manager_anomalies(request):
             "count": employee_count,
         })
 
-    return render(request, "manager_anomalies.html", {
+    data = {
         "months": months,
         "selected_month": selected_month,
         "selected_month_label": month_start.strftime("%B %Y"),
@@ -2584,7 +2670,28 @@ def manager_anomalies(request):
         "clear_employees": len(team_users) - affected_employees,
         "grouped_anomalies": grouped_anomalies,
         "employee_summaries": employee_summaries,
-    })
+    }
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            **{key: value for key, value in data.items() if key not in ["months", "grouped_anomalies", "employee_summaries"]},
+            "summaries": [{
+                "name": row["profile"].user.username,
+                "position": row["profile"].position or "Employee",
+                "count": row["count"],
+                "search": f"{row['profile'].user.username} {row['profile'].position or 'Employee'}",
+            } for row in employee_summaries],
+            "groups": [{
+                "name": group["profile"].user.username,
+                "position": group["profile"].position or "Employee",
+                "department": group["profile"].department or "",
+                "count": group["count"],
+                "hours": group["hours"],
+                "anomalies": [serialize_anomaly(anomaly) for anomaly in group["anomalies"]],
+            } for group in grouped_anomalies],
+        })
+
+    return render(request, "manager_anomalies.html", data)
 
 @login_required
 def employee_analytics(request):
@@ -2790,21 +2897,9 @@ def employee_anomalies(request):
     }
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        anomalies_data = []
-
-        for anomaly in anomalies:
-            anomalies_data.append({
-                "date": anomaly.date.strftime("%b %d, %Y"),
-                "status": anomaly.status,
-                "check_in": localtime(anomaly.check_in).strftime("%H:%M") if anomaly.check_in else "—",
-                "check_out": localtime(anomaly.check_out).strftime("%H:%M") if anomaly.check_out else "—",
-                "worked_hours": round(anomaly.worked_hours or 0, 2),
-                "reason": anomaly.anomaly_reason or "No reason provided.",
-            })
-
         return JsonResponse({
             **data,
-            "anomalies": anomalies_data,
+            "anomalies": [serialize_anomaly(anomaly) for anomaly in anomalies],
         })
 
     return render(request, "anomalies.html", {

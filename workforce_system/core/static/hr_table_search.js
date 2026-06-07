@@ -2,10 +2,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const input = document.getElementById("analyticsSearchInput");
     if (!input) return;
 
-    const rows = Array.from(document.querySelectorAll(input.dataset.searchTarget || ""));
     const empty = document.getElementById(input.dataset.emptyTarget || "");
 
     function applySearch() {
+        const rows = Array.from(document.querySelectorAll(input.dataset.searchTarget || ""));
         const query = input.value.trim().toLowerCase();
         let visibleCount = 0;
 
@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    window.applyAnalyticsTableSearch = applySearch;
     input.addEventListener("input", applySearch);
     applySearch();
 });

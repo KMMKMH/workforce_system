@@ -84,6 +84,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 anomaliesLink.href = `/analytics/anomalies/?month=${data.selected_month}`;
             }
 
+            const anomaliesCard = document.getElementById("anomaliesCard");
+            if (anomaliesCard) {
+                anomaliesCard.classList.toggle("has-anomalies", data.anomalies > 0);
+                anomaliesCard.classList.toggle("no-anomalies", data.anomalies <= 0);
+            }
+
+            const anomaliesIcon = document.getElementById("anomaliesIcon");
+            if (anomaliesIcon) {
+                anomaliesIcon.className = data.anomalies > 0 ? "fas fa-exclamation-triangle" : "fas fa-check-circle";
+            }
+
+            const anomaliesHint = document.getElementById("anomaliesHint");
+            if (anomaliesHint) {
+                anomaliesHint.hidden = data.anomalies <= 0;
+            }
+
         } catch (error) {
             console.error(error);
             alert("Could not load analytics for this month.");
