@@ -18,6 +18,12 @@ A Django-based workforce management system for handling employees, managers, HR 
 - Chat with direct conversations, team conversations, and announcements
 - Profile page with password change, CV upload/view, and biometric controls where allowed
 
+## Architecture
+
+![Workforce System Architecture](assets/Architecture.png)
+
+*The Workforce System follows a layered Django architecture, integrating AI attendance for biometric face verification and liveness detection while keeping business logic modular and maintainable.*
+
 ## Download and Run on Your Laptop
 
 ### 1. Requirements
